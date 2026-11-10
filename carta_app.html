@@ -1,0 +1,2780 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0c0c0b">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="CARTA — atelier obrazu. Generowanie i edycja grafiki AI w jednym pliku.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>CARTA — Atelier obrazu</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230c0c0b'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Georgia' font-size='16' fill='%23f3f1ec'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Outfit:wght@400;500;560&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Outfit:wght@400;500;560&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #0c0c0b;
+    --elev: #141413;
+    --subtle: #1c1c1a;
+    --fg: #f3f1ec;
+    --muted: #a3a099;
+    --faint: #6f6c66;
+    --border: color-mix(in oklab, var(--fg) 12%, transparent);
+    --border-strong: color-mix(in oklab, var(--fg) 22%, transparent);
+    --accent: #e7e2d8;
+    --accent-fg: #141311;
+    --danger: #c45c4a;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --display: "Fraunces", "Iowan Old Style", Palatino, "Times New Roman", serif;
+    --body: "Outfit", "Avenir Next", "Segoe UI", Roboto, sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --fast: 250ms;
+    --quick: 150ms;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    width: 100%;
+  }
+  body {
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100dvh;
+  }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: 0.45; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .app {
+    width: min(1120px, 100%);
+    max-width: 100vw;
+    margin: 0 auto;
+    overflow-x: hidden;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .mark {
+    font-family: var(--display);
+    font-weight: 560;
+    font-size: 26px;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    margin: 0;
+  }
+  .sub { margin: 6px 0 0; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; }
+  .head-actions { display: flex; align-items: center; gap: 8px; }
+  .chip, .icon-btn, .tab, .tile, .style, .count, .btn, .text-btn {
+    border: 1px solid var(--border);
+    background: var(--elev);
+    border-radius: var(--radius-sm);
+    transition: background var(--quick) var(--ease), border-color var(--quick) var(--ease), transform var(--quick) var(--ease);
+  }
+  .chip {
+    height: 44px;
+    padding: 0 12px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  .icon-btn svg, .tab svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  .chip:hover, .icon-btn:hover, .text-btn:hover, .tab:hover, .tile:hover, .style:hover, .count:hover, .btn.secondary:hover {
+    border-color: var(--border-strong);
+    background: var(--subtle);
+  }
+  .layout { display: grid; gap: 22px; max-width: 100%; min-width: 0; }
+  .controls, .stage, .results, .stack { max-width: 100%; min-width: 0; }
+  .mode-title {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 560;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin: 14px 0 4px;
+  }
+  .lede { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
+  .tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .tab {
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 2px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .tab[aria-pressed="true"], .tile[aria-pressed="true"], .style[aria-pressed="true"], .count[aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--accent-fg);
+    border-color: var(--fg);
+  }
+  label { display: block; }
+  .lbl {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  textarea, input[type="text"], input[type="password"], select {
+    width: 100%;
+    background: var(--elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    min-height: 48px;
+  }
+  textarea { min-height: 120px; resize: vertical; line-height: 1.45; }
+  textarea::placeholder, input::placeholder { color: var(--faint); }
+  .stack { display: grid; gap: 14px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn, .text-btn {
+    min-height: 48px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn.primary {
+    width: 100%;
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+    font-weight: 560;
+    min-height: 52px;
+  }
+  .btn.primary:hover:not(:disabled) { background: #f3f1ec; }
+  .btn.primary:active:not(:disabled), .text-btn:active { transform: scale(0.98); }
+  .btn.secondary, .text-btn { background: transparent; }
+  .btn.block { width: 100%; }
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .ref-tile { position: relative; min-width: 0; }
+  .ref-add {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--elev);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    color: var(--muted);
+  }
+  .ref-add img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ref-plus { font-family: var(--display); font-size: 34px; line-height: 1; }
+  .ref-x {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(12, 12, 11, 0.82);
+    color: var(--fg);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .ref-name { margin: 6px 0 0; text-align: center; font-size: 12px; letter-spacing: 0.03em; color: var(--muted); }
+  .ref-board.hot .ref-add, .ref-grid.hot .ref-add { border-color: var(--fg); }
+  .drop {
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    min-height: 160px;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    background: var(--elev);
+    text-align: center;
+    color: var(--muted);
+  }
+  .drop.hot { border-color: var(--fg); }
+  .drop img, .fit img, .card img, .shot img { display: block; width: 100%; height: auto; }
+  .drop img { max-height: 320px; object-fit: contain; border-radius: var(--radius-sm); }
+  .fit { position: relative; display: inline-block; max-width: 100%; touch-action: none; }
+  .fit img { border-radius: var(--radius-md); }
+  .fit canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  .brush-ring {
+    position: absolute;
+    border: 1px solid var(--fg);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    display: none;
+  }
+  .mask-tools { display: flex; gap: 8px; align-items: center; }
+.mask-tools .btn { flex: 1; }
+.armed { color: var(--danger); border-color: var(--danger); }
+  .mask-tools .grow { flex: 1; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    max-width: 100%;
+    height: 44px;
+    background: transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--border-strong);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -10px;
+    border-radius: 50%;
+    background: var(--fg);
+    border: 0;
+  }
+  .tiles, .styles, .counts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tile, .style, .count { min-height: 44px; padding: 8px 10px; color: var(--muted); }
+  .tile { width: 72px; display: grid; justify-items: center; gap: 6px; font-size: 12px; }
+  .ratio { display: block; border: 1.5px solid currentColor; border-radius: 2px; }
+  .r11 { width: 16px; height: 16px; }
+  .r916 { width: 11px; height: 18px; }
+  .r169 { width: 20px; height: 12px; }
+  .r43 { width: 18px; height: 14px; }
+  .r23 { width: 12px; height: 18px; }
+  .fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--fast) var(--ease); }
+  .fold.open { grid-template-rows: 1fr; }
+  .fold.shut { grid-template-rows: 0fr; }
+  .fold-inner { overflow: hidden; }
+  .fold-body { padding-top: 12px; display: grid; gap: 14px; }
+  .disclosure {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    border: 0;
+    padding: 8px 0;
+    color: var(--fg);
+    min-height: 44px;
+  }
+  .hint, .note, .empty p, .cap { color: var(--muted); font-size: 13px; }
+  .hint { margin: 0; }
+  .alert {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: var(--subtle);
+    border: 1px solid color-mix(in oklab, var(--danger) 55%, var(--border));
+    color: var(--fg);
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border-strong);
+    border-top-color: var(--fg);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .results { display: grid; gap: 12px; }
+  .results.multi { grid-template-columns: 1fr 1fr; }
+  .card, .skel {
+    background: var(--elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card img { aspect-ratio: var(--ar, 1 / 1); object-fit: contain; background: var(--subtle); }
+  .card.checker img {
+    background-color: #141413;
+    background-image: linear-gradient(45deg, #1c1c1a 25%, transparent 25%), linear-gradient(-45deg, #1c1c1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1c1c1a 75%), linear-gradient(-45deg, transparent 75%, #1c1c1a 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  .card figcaption { padding: 12px; display: grid; gap: 10px; }
+  .cap { margin: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .skel {
+    aspect-ratio: var(--ar, 1 / 1);
+    position: relative;
+  }
+  .skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--fg) 7%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: sheen 1.4s linear infinite;
+  }
+  @keyframes sheen { to { transform: translateX(100%); } }
+  .skel-label {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    margin: 0;
+    z-index: 1;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  .frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 28px 20px;
+    background: var(--elev);
+    min-height: 220px;
+    display: grid;
+    align-content: end;
+    gap: 8px;
+  }
+  .kicker {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .frame p:last-child { margin: 0; font-family: var(--display); font-size: 26px; line-height: 1.2; letter-spacing: -0.03em; color: var(--fg); max-width: 18ch; }
+  .gallery-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 8px 0; }
+  .gallery-head h2 { font-size: 15px; font-weight: 560; margin: 0; }
+  .gallery-row { display: flex; gap: 10px; overflow-x: auto; max-width: 100%; min-width: 0; padding-bottom: 6px; }
+  .shot { width: 148px; flex: none; }
+  .shot img { aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); background: var(--subtle); }
+  .card video, .shot video { display: block; width: 100%; background: #000; }
+  .card video { aspect-ratio: var(--ar, 16 / 9); object-fit: contain; }
+  .shot video { aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); }
+  .video-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .video-pick {
+    width: 112px;
+    height: 112px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--elev);
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .video-pick img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .video-side { display: grid; gap: 8px; min-width: 0; }
+  .video-pick.hot { border-color: var(--fg); }
+  .shot .actions { margin-top: 6px; gap: 4px; }
+  .shot .icon-btn.armed { color: var(--danger); border-color: var(--danger); }
+  .empty-note { color: var(--muted); font-size: 14px; margin: 0; }
+  .sheet { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; }
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); opacity: 0; transition: opacity var(--quick) var(--ease); }
+  .sheet.is-open .sheet-backdrop { opacity: 1; }
+  .sheet-panel {
+    position: relative;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+    max-height: min(92dvh, 820px);
+    overflow: auto;
+    box-shadow: var(--shadow);
+    transform: translateY(12px);
+    opacity: 0;
+    transition: transform var(--fast) var(--ease), opacity var(--quick) var(--ease);
+  }
+  .sheet.is-open .sheet-panel { transform: none; opacity: 1; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .sheet-head h2 { font-family: var(--display); font-weight: 560; font-size: 28px; margin: 8px 0 12px; letter-spacing: -0.03em; }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; min-height: 44px; }
+  .text-link { color: var(--fg); }
+  .help { margin: 0; color: var(--muted); font-size: 14px; }
+  @media (min-width: 960px) {
+    .app { padding-top: 28px; }
+    .layout { grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 28px; align-items: start; }
+    .stage { position: sticky; top: 20px; }
+    .fold.desktop-open:not(.shut) { grid-template-rows: 1fr; }
+    .sheet { align-items: center; justify-items: center; }
+    .sheet-panel {
+      width: min(520px, calc(100% - 32px));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      transform: translateY(8px) scale(0.98);
+    }
+    .mode-title { font-size: 34px; }
+  }
+  @media (max-width: 520px) {
+    .results.multi { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1 class="mark">CARTA</h1>
+      <p class="sub">Atelier obrazu</p>
+    </div>
+    <div class="head-actions">
+      <button type="button" class="chip" id="provider-chip">Flux</button>
+      <button type="button" class="icon-btn" id="gear" aria-label="Ustawienia">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="controls stack" aria-label="Warsztat">
+      <div class="tabs" role="tablist" aria-label="Tryb">
+        <button type="button" class="tab" role="tab" data-mode="text" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+          Tekst
+        </button>
+        <button type="button" class="tab" role="tab" data-mode="image" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          Obraz
+        </button>
+        <button type="button" class="tab" role="tab" data-mode="mask" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Maska
+        </button>
+        <button type="button" class="tab" role="tab" data-mode="tools" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+          Narzędzia
+        </button>
+        <button type="button" class="tab" role="tab" data-mode="video" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="m10 10 5 3-5 3z"/></svg>
+          Wideo
+        </button>
+      </div>
+      <h2 class="mode-title" id="mode-title">Tekst → obraz</h2>
+      <p class="lede" id="lede">Opis staje się odbitką. Styl dokleja się do promptu w tle.</p>
+
+      <div id="panel-prompt" class="stack">
+        <label>
+          <span class="lbl"><span>Opis</span><span id="count-chars">0</span></span>
+          <textarea id="prompt" maxlength="4000" placeholder="Miękkie światło, lniany obrus, ceramiczna filiżanka, płytka głębia ostrości"></textarea>
+        </label>
+      </div>
+
+      <div id="panel-video" class="stack" hidden>
+        <div class="ref-grid" id="video-grid">
+          <article class="ref-tile" data-vslot="0">
+            <button type="button" class="ref-add" data-vadd="0" aria-label="Wgraj zdjęcie 1"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 1" hidden></button>
+            <button type="button" class="ref-x" data-vclear="0" hidden aria-label="Usuń zdjęcie 1">×</button>
+            <p class="ref-name">Zdjęcie #1</p>
+          </article>
+          <article class="ref-tile" data-vslot="1">
+            <button type="button" class="ref-add" data-vadd="1" aria-label="Wgraj zdjęcie 2"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 2" hidden></button>
+            <button type="button" class="ref-x" data-vclear="1" hidden aria-label="Usuń zdjęcie 2">×</button>
+            <p class="ref-name">Zdjęcie #2</p>
+          </article>
+          <article class="ref-tile" data-vslot="2">
+            <button type="button" class="ref-add" data-vadd="2" aria-label="Wgraj zdjęcie 3"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 3" hidden></button>
+            <button type="button" class="ref-x" data-vclear="2" hidden aria-label="Usuń zdjęcie 3">×</button>
+            <p class="ref-name">Zdjęcie #3</p>
+          </article>
+          <article class="ref-tile" data-vslot="3">
+            <button type="button" class="ref-add" data-vadd="3" aria-label="Wgraj zdjęcie 4"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 4" hidden></button>
+            <button type="button" class="ref-x" data-vclear="3" hidden aria-label="Usuń zdjęcie 4">×</button>
+            <p class="ref-name">Zdjęcie #4</p>
+          </article>
+        </div>
+        <div class="row-2">
+          <button type="button" class="btn secondary" id="video-clear" disabled>Wyczyść obraz</button>
+          <button type="button" class="btn secondary" id="video-last">Odbitka z galerii</button>
+        </div>
+        <input id="video-file" type="file" accept="image/*" multiple hidden>
+        <p class="hint">Zostaw pole puste, aby wygenerować film od zera z samego tekstu. Przy kilku kadrach pisz Zdjęcie #1, Zdjęcie #2.</p>
+      </div>
+
+      <div id="panel-source" class="stack" hidden>
+        <div id="ref-board" class="stack ref-board">
+          <div class="ref-grid" id="ref-grid">
+            <article class="ref-tile" data-slot="0">
+              <button type="button" class="ref-add" data-add="0" aria-label="Wgraj zdjęcie 1"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 1" hidden></button>
+              <button type="button" class="ref-x" data-clear="0" hidden aria-label="Usuń zdjęcie 1">×</button>
+              <p class="ref-name">Zdjęcie #1</p>
+            </article>
+            <article class="ref-tile" data-slot="1">
+              <button type="button" class="ref-add" data-add="1" aria-label="Wgraj zdjęcie 2"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 2" hidden></button>
+              <button type="button" class="ref-x" data-clear="1" hidden aria-label="Usuń zdjęcie 2">×</button>
+              <p class="ref-name">Zdjęcie #2</p>
+            </article>
+            <article class="ref-tile" data-slot="2">
+              <button type="button" class="ref-add" data-add="2" aria-label="Wgraj zdjęcie 3"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 3" hidden></button>
+              <button type="button" class="ref-x" data-clear="2" hidden aria-label="Usuń zdjęcie 3">×</button>
+              <p class="ref-name">Zdjęcie #3</p>
+            </article>
+            <article class="ref-tile" data-slot="3">
+              <button type="button" class="ref-add" data-add="3" aria-label="Wgraj zdjęcie 4"><span class="ref-plus" aria-hidden="true">+</span><img alt="Podgląd zdjęcia 4" hidden></button>
+              <button type="button" class="ref-x" data-clear="3" hidden aria-label="Usuń zdjęcie 4">×</button>
+              <p class="ref-name">Zdjęcie #4</p>
+            </article>
+          </div>
+          <p class="hint" id="ref-hint">Wgraj co najmniej dwa zdjęcia. W opisie pisz Zdjęcie #1, Zdjęcie #2, Zdjęcie #3, Zdjęcie #4.</p>
+          <input id="ref-file" type="file" accept="image/*" multiple hidden>
+        </div>
+        <div id="single-source" class="stack">
+          <div class="row-2">
+            <button type="button" class="btn secondary" id="pick">Galeria</button>
+            <button type="button" class="btn secondary" id="cam">Aparat</button>
+          </div>
+          <input id="file" type="file" accept="image/*" hidden>
+          <input id="cam-file" type="file" accept="image/*" capture="environment" hidden>
+          <div id="drop" class="drop">
+            <img id="preview" alt="Podgląd zdjęcia źródłowego" hidden>
+            <p id="drop-label">Upuść zdjęcie albo wybierz je z telefonu</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-denoise" hidden>
+        <label>
+          <span class="lbl"><span>Siła zmian</span><span id="denoise-val">0.65</span></span>
+          <input id="denoise" type="range" min="0.05" max="1" step="0.01" value="0.65">
+        </label>
+        <p class="hint">Niższa wartość trzyma się zdjęć. Wyższa oddaje obraz opisowi. Przy kilku kadrach dotyczy całego zestawu.</p>
+      </div>
+
+      <div id="panel-mask" class="stack" hidden>
+        <div class="fit" id="mask-fit">
+          <img id="mask-img" alt="">
+          <canvas id="mask-view"></canvas>
+          <div id="brush-ring" class="brush-ring"></div>
+        </div>
+        <p class="hint" id="mask-empty">Wgraj zdjęcie, potem zamaluj obszar, który ma się zmienić.</p>
+        <label>
+          <span class="lbl"><span>Pędzel</span><span id="brush-val">36</span></span>
+          <input id="brush" type="range" min="8" max="120" value="36">
+        </label>
+        <div class="mask-tools">
+          <button type="button" class="btn secondary grow" id="undo" disabled>Cofnij</button>
+          <button type="button" class="btn secondary grow" id="clear-mask">Wyczyść</button>
+        </div>
+      </div>
+
+      <div id="panel-tools" class="stack" hidden>
+        <button type="button" class="btn secondary block" id="remove-bg">Usuń tło</button>
+        <p class="hint" id="remove-hint">Na urządzeniu, modelem lokalnym. Pierwsze użycie pobiera model.</p>
+        <button type="button" class="btn secondary block" id="upscale">Upscale 4K</button>
+        <p class="hint" id="upscale-hint">Silnik zależy od dostawcy w ustawieniach.</p>
+      </div>
+
+      <div id="panel-advanced">
+        <button type="button" class="disclosure" id="adv-btn" aria-expanded="false" aria-controls="fold">
+          <span>Kontrola</span>
+          <span id="adv-mark" aria-hidden="true">+</span>
+        </button>
+        <div class="fold desktop-open" id="fold">
+          <div class="fold-inner">
+            <div class="fold-body">
+              <div>
+                <p class="lbl"><span>Proporcje</span></p>
+                <div class="tiles" role="group" aria-label="Proporcje">
+                  <button type="button" class="tile" data-aspect="1:1" aria-pressed="true"><span class="ratio r11"></span>1:1</button>
+                  <button type="button" class="tile" data-aspect="9:16" aria-pressed="false"><span class="ratio r916"></span>9:16</button>
+                  <button type="button" class="tile" data-aspect="16:9" aria-pressed="false"><span class="ratio r169"></span>16:9</button>
+                  <button type="button" class="tile" data-aspect="4:3" aria-pressed="false"><span class="ratio r43"></span>4:3</button>
+                  <button type="button" class="tile" data-aspect="2:3" aria-pressed="false"><span class="ratio r23"></span>2:3</button>
+                </div>
+              </div>
+              <div>
+                <p class="lbl"><span>Styl</span></p>
+                <div class="styles" role="group" aria-label="Styl">
+                  <button type="button" class="style" data-style="clean" aria-pressed="false">Czysty</button>
+                  <button type="button" class="style" data-style="photo" aria-pressed="true">Fotorealizm</button>
+                  <button type="button" class="style" data-style="anime" aria-pressed="false">Anime</button>
+                  <button type="button" class="style" data-style="cyber" aria-pressed="false">Cyberpunk</button>
+                  <button type="button" class="style" data-style="cinema" aria-pressed="false">Cinematic</button>
+                  <button type="button" class="style" data-style="sketch" aria-pressed="false">Szkic</button>
+                  <button type="button" class="style" data-style="render" aria-pressed="false">3D Render</button>
+                </div>
+                <p class="hint" id="style-hint"></p>
+              </div>
+              <label>
+                <span class="lbl"><span>Kroki</span><span id="steps-val">28</span></span>
+                <input id="steps" type="range" min="10" max="50" value="28">
+              </label>
+              <label>
+                <span class="lbl"><span>CFG</span><span id="cfg-val">7</span></span>
+                <input id="cfg" type="range" min="1" max="20" step="0.5" value="7">
+              </label>
+              <p class="hint">Kroki i CFG idą do Replicate oraz części modeli HF. Grok, DALL·E i Flux w przeglądarce próbkują po swojemu.</p>
+              <label>
+                <span class="lbl"><span>Prompt negatywny</span></span>
+                <textarea id="negative" rows="2" maxlength="800" placeholder="tekst, znak wodny, zniekształcone dłonie"></textarea>
+              </label>
+              <div id="count-block">
+                <p class="lbl"><span>Liczba obrazów</span></p>
+                <div class="counts" role="group" aria-label="Liczba obrazów">
+                  <button type="button" class="count" data-count="1" aria-pressed="true">1</button>
+                  <button type="button" class="count" data-count="2" aria-pressed="false">2</button>
+                  <button type="button" class="count" data-count="3" aria-pressed="false">3</button>
+                  <button type="button" class="count" data-count="4" aria-pressed="false">4</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="alert" id="alert" role="alert" hidden></p>
+      <p class="note" id="note" hidden></p>
+      <p class="status" id="status" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="status-text">Generowanie</span>
+        <span id="timer">0:00</span>
+      </p>
+      <div id="generate-bar">
+        <button type="button" class="btn primary" id="go">Generuj</button>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Wynik i galeria">
+      <div class="frame" id="empty">
+        <p class="kicker">Odbitka</p>
+        <p>Tu pojawi się wynik.</p>
+      </div>
+      <div class="results" id="results"></div>
+      <div class="gallery-head">
+        <h2>Galeria</h2>
+        <span class="hint" id="gallery-count">0</span>
+      </div>
+      <div class="gallery-row" id="gallery">
+        <p class="empty-note">Galeria jest pusta. Odbitki zostają w tej przeglądarce.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-backdrop" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title">Ustawienia</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Zamknij">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="stack">
+      <label>
+        <span class="lbl"><span>Dostawca</span></span>
+        <select id="provider">
+          <option value="builtin">Grok Imagine (wbudowany)</option>
+          <option value="xai">xAI — własny klucz</option>
+          <option value="openai">OpenAI — DALL·E 3</option>
+          <option value="hf">Hugging Face — FLUX</option>
+          <option value="replicate">Replicate — FLUX / SD3</option>
+          <option value="flux">Flux w przeglądarce (bez klucza)</option>
+        </select>
+      </label>
+      <p class="help" id="provider-help"></p>
+      <label>
+        <span class="lbl"><span>Klucz API</span></span>
+        <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Zostaje tylko w tej przeglądarce">
+      </label>
+      <label class="check"><input id="show-key" type="checkbox"> Pokaż klucz</label>
+      <label>
+        <span class="lbl"><span>Model</span><span class="hint">opcjonalnie</span></span>
+        <input id="model" type="text" autocomplete="off" spellcheck="false" placeholder="Domyślny dla dostawcy">
+      </label>
+      <label>
+        <span class="lbl"><span>Adres bazowy</span><span class="hint">opcjonalnie</span></span>
+        <input id="base-url" type="text" autocomplete="off" spellcheck="false" placeholder="Własna bramka zgodna z API">
+      </label>
+      <label>
+        <span class="lbl"><span>Proxy CORS</span><span class="hint">opcjonalnie</span></span>
+        <input id="proxy" type="text" autocomplete="off" spellcheck="false" placeholder="https://twoja-bramka/?u={url}">
+      </label>
+      <p class="help">Klucz jest w LocalStorage i leci tylko do wybranego dostawcy. OpenAI, xAI, Hugging Face i Replicate często blokują wywołania wprost ze strony (CORS). Wtedy użyj Flux, wbudowanego Grok albo własnego adresu bazowego.</p>
+      <button type="button" class="btn secondary block" id="wipe">Wyczyść galerię</button>
+      <a class="text-link" id="get-file" href="carta.html" download="carta.html">Pobierz autonomiczny plik HTML</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const STYLES = {
+  clean: { label: "Czysty", suffix: "" },
+  photo: { label: "Fotorealizm", suffix: ", photorealistic, natural light, fine detail, shot on 50mm" },
+  anime: { label: "Anime", suffix: ", anime illustration, clean linework, cel shading" },
+  cyber: { label: "Cyberpunk", suffix: ", cyberpunk city at night, wet asphalt, restrained neon, cinematic haze" },
+  cinema: { label: "Cinematic", suffix: ", cinematic still, anamorphic framing, film grain, dramatic lighting" },
+  sketch: { label: "Szkic", suffix: ", pencil sketch on warm paper, graphite hatching" },
+  render: { label: "3D Render", suffix: ", octane render, studio lighting, physically based materials" },
+};
+const SIZES = {
+  "1:1": [1024, 1024],
+  "9:16": [768, 1344],
+  "16:9": [1344, 768],
+  "4:3": [1152, 864],
+  "2:3": [832, 1248],
+};
+const SHORT = {
+  builtin: "Grok",
+  xai: "xAI",
+  openai: "DALL·E",
+  hf: "FLUX HF",
+  replicate: "Replicate",
+  flux: "Flux",
+};
+const HELP = {
+  builtin: "Generowanie idzie przez to atelier. Obrazy: grok-imagine-image-2.0. Film: grok-imagine-video-1.5, z opisem albo z obrazem startowym.",
+  xai: "Klucz z console.x.ai. Obraz: grok-imagine-image-2.0. Film: grok-imagine-video-1.5. Bez obrazu startowego leci sam opis, z obrazem — ożywianie kadru.",
+  openai: "Klucz OpenAI. Tekst: DALL·E 3 (JSON). Zdjęcie i maska: DALL·E 2, multipart z plikiem i maską.",
+  hf: "Token Hugging Face. Domyślnie POST na router.huggingface.co, model black-forest-labs/FLUX.1-schnell.",
+  replicate: "Token Replicate. Tekst: flux-schnell. Zdjęcie: flux-dev. Maska: flux-fill-dev. Tło: lucataco/remove-bg. Upscale: nightmareai/real-esrgan.",
+  flux: "Bez klucza. Tylko tekst, model Flux. Zdjęcie, maska i narzędzia sieciowe wymagają innego dostawcy.",
+};
+const STORE = "carta.settings.v1";
+const state = {
+  mode: "text",
+  aspect: "1:1",
+  style: "photo",
+  steps: 28,
+  cfg: 7,
+  count: 1,
+  denoise: 0.65,
+  brush: 36,
+  negative: "",
+  provider: "",
+  apiKey: "",
+  model: "",
+  baseUrl: "",
+  proxy: "",
+  builtin: false,
+  source: null,
+  busy: false,
+  abort: null,
+  shots: [],
+  refs: [null, null, null, null],
+  videoRefs: [null, null, null, null],
+  job: 0,
+};
+const mask = { drawing: false, last: null, undo: [] };
+let maskContext = null;
+
+const $ = (id) => document.getElementById(id);
+
+function fmt(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+function tick() {
+  return new Promise((resolve) => setTimeout(resolve, 30));
+}
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(t);
+      reject(new DOMException("Aborted", "AbortError"));
+    });
+  });
+}
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Nie można odczytać obrazu. Użyj JPEG lub PNG."));
+    img.src = src;
+  });
+}
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Nie udało się zapisać obrazu."));
+    reader.readAsDataURL(blob);
+  });
+}
+function dataUrlToBlob(dataUrl) {
+  const parts = String(dataUrl).split(",");
+  const mime = /data:(.*?);/.exec(parts[0])?.[1] || "image/png";
+  const bin = atob(parts[1] || "");
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Nie udało się zakodować obrazu."))), "image/png");
+  });
+}
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Nie udało się wczytać pliku."));
+    reader.readAsDataURL(file);
+  });
+}
+function needsKey(provider) {
+  return provider === "xai" || provider === "openai" || provider === "hf" || provider === "replicate";
+}
+function maskNative(provider) {
+  return provider === "openai" || provider === "replicate";
+}
+function showError(message) {
+  const el = $("alert");
+  el.hidden = false;
+  el.textContent = message;
+}
+function clearError() {
+  $("alert").hidden = true;
+  $("alert").textContent = "";
+}
+function showNote(message) {
+  const el = $("note");
+  if (!message) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.textContent = message;
+}
+function fail(message) {
+  showError(message);
+  return null;
+}
+
+function saveSettings() {
+  const data = {
+    mode: state.mode,
+    aspect: state.aspect,
+    style: state.style,
+    steps: state.steps,
+    cfg: state.cfg,
+    count: state.count,
+    denoise: state.denoise,
+    brush: state.brush,
+    negative: state.negative,
+    provider: state.provider,
+    apiKey: state.apiKey,
+    model: state.model,
+    baseUrl: state.baseUrl,
+    proxy: state.proxy,
+    prompt: $("prompt").value,
+  };
+  try { localStorage.setItem(STORE, JSON.stringify(data)); } catch { /* private mode */ }
+}
+function restoreSettings() {
+  let data = {};
+  try { data = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch { data = {}; }
+  state.mode = data.mode || "text";
+  state.aspect = SIZES[data.aspect] ? data.aspect : "1:1";
+  state.style = STYLES[data.style] ? data.style : "photo";
+  state.steps = Number(data.steps) || 28;
+  state.cfg = Number(data.cfg) || 7;
+  state.count = Math.min(4, Math.max(1, Number(data.count) || 1));
+  state.denoise = Number.isFinite(Number(data.denoise)) ? Number(data.denoise) : 0.65;
+  state.brush = Number(data.brush) || 36;
+  state.negative = data.negative || "";
+  state.provider = data.provider || "";
+  state.apiKey = data.apiKey || "";
+  state.model = data.model || "";
+  state.baseUrl = data.baseUrl || "";
+  state.proxy = data.proxy || "";
+  $("prompt").value = data.prompt || "";
+  $("negative").value = state.negative;
+  $("steps").value = String(state.steps);
+  $("cfg").value = String(state.cfg);
+  $("denoise").value = String(state.denoise);
+  $("brush").value = String(state.brush);
+  $("api-key").value = state.apiKey;
+  $("model").value = state.model;
+  $("base-url").value = state.baseUrl;
+  $("proxy").value = state.proxy;
+  $("steps-val").textContent = String(state.steps);
+  $("cfg-val").textContent = String(state.cfg);
+  $("denoise-val").textContent = state.denoise.toFixed(2);
+  $("brush-val").textContent = String(state.brush);
+  $("count-chars").textContent = String($("prompt").value.length);
+}
+
+function foldIsOpen() {
+  const fold = $("fold");
+  if (fold.classList.contains("shut")) return false;
+  if (fold.classList.contains("open")) return true;
+  return fold.classList.contains("desktop-open") && matchMedia("(min-width: 960px)").matches;
+}
+function sync() {
+  document.querySelectorAll("[data-mode]").forEach((btn) => {
+    btn.setAttribute("aria-pressed", String(btn.dataset.mode === state.mode));
+  });
+  document.querySelectorAll("[data-aspect]").forEach((btn) => {
+    btn.setAttribute("aria-pressed", String(btn.dataset.aspect === state.aspect));
+  });
+  document.querySelectorAll("[data-style]").forEach((btn) => {
+    btn.setAttribute("aria-pressed", String(btn.dataset.style === state.style));
+  });
+  document.querySelectorAll("[data-count]").forEach((btn) => {
+    btn.setAttribute("aria-pressed", String(Number(btn.dataset.count) === state.count));
+  });
+  const mode = state.mode;
+  const copy = {
+    text: ["Tekst → obraz", "Opis staje się odbitką. Styl dokleja się do promptu w tle."],
+    image: ["Obraz → obraz", "Od dwóch do czterech zdjęć. W opisie odwołuj się do Zdjęcia #1–#4."],
+    mask: ["Inpainting", "Zamaluj tylko to, co ma się zmienić. Reszta zostaje."],
+    tools: ["Narzędzia", "Tło i rozdzielczość, bez pisania promptu."],
+    video: ["Generator wideo", "Opis jest obowiązkowy. Obraz startowy możesz zostawić pusty."],
+  };
+  $("mode-title").textContent = copy[mode][0];
+  $("lede").textContent = copy[mode][1];
+  $("panel-prompt").hidden = mode === "tools";
+  $("panel-video").hidden = mode !== "video";
+  $("panel-source").hidden = mode === "text" || mode === "video";
+  $("ref-board").hidden = mode !== "image";
+  $("single-source").hidden = mode !== "mask";
+  $("panel-denoise").hidden = mode !== "image";
+  $("panel-mask").hidden = mode !== "mask";
+  $("panel-tools").hidden = mode !== "tools";
+  $("panel-advanced").hidden = mode === "tools";
+  $("count-block").hidden = mode === "video";
+  $("generate-bar").hidden = mode === "tools";
+  $("drop").hidden = mode === "mask" && !!state.source;
+  $("mask-empty").hidden = !!state.source;
+  $("mask-fit").hidden = !state.source;
+  const style = STYLES[state.style];
+  $("style-hint").textContent = style.suffix ? "Doklejam: " + style.suffix.replace(/^, /, "") : "Do opisu nic nie doklejam.";
+  const fold = $("fold");
+  const open = foldIsOpen();
+  $("adv-btn").setAttribute("aria-expanded", String(open));
+  $("adv-mark").textContent = open ? "–" : "+";
+  $("prompt").placeholder = mode === "image"
+    ? "Połącz twarz ze Zdjęcia #1 z ubraniem ze Zdjęcia #2 na tle miejsca ze Zdjęcia #3"
+    : mode === "video"
+      ? "Wolny najazd, wiatr w tkaninie, kamera cofa się o pół kroku"
+      : "Miękkie światło, lniany obrus, ceramiczna filiżanka, płytka głębia ostrości";
+  if (!state.busy) $("go").textContent = mode === "video" ? "Generuj film" : "Generuj";
+  paintVideoField();
+  renderRefs();
+  updateEngineHints();
+}
+function updateEngineHints() {
+  const provider = state.provider || "flux";
+  $("provider-chip").textContent = SHORT[provider] || "Flux";
+  $("provider").value = provider;
+  $("provider-help").textContent = HELP[provider] || "";
+  const opt = $("provider").querySelector('option[value="builtin"]');
+  opt.disabled = !state.builtin;
+  opt.textContent = state.builtin ? "Grok Imagine (wbudowany)" : "Grok Imagine (niedostępny tutaj)";
+  if (provider === "replicate" && state.apiKey) {
+    $("remove-hint").textContent = "Replicate, model lucataco/remove-bg.";
+    $("upscale-hint").textContent = "Replicate, Real-ESRGAN, skala 4.";
+  } else if (provider === "hf" && state.apiKey) {
+    $("remove-hint").textContent = "Hugging Face, model briaai/RMBG-1.4.";
+    $("upscale-hint").textContent = "Lokalne powiększenie 4× z wyostrzeniem. HF nie ma tu osobnego upscale.";
+  } else if (provider === "builtin" && state.builtin) {
+    $("remove-hint").textContent = "Najpierw model na urządzeniu. Jeśli zawiedzie, nic nie zostanie policzone.";
+    $("upscale-hint").textContent = "Lokalne 4×. Wbudowany Grok podnosi detal, ale nie gwarantuje 4K.";
+  } else {
+    $("remove-hint").textContent = "Na urządzeniu, modelem lokalnym. Pierwsze użycie pobiera model.";
+    $("upscale-hint").textContent = "Lokalne powiększenie do dłuższego boku 4K, z lekkim wyostrzeniem.";
+  }
+}
+
+function getMaskContext() {
+  const canvas = $("mask-view");
+  if (!maskContext || maskContext.canvas !== canvas) {
+    maskContext = canvas.getContext("2d", { willReadFrequently: true });
+  }
+  return maskContext;
+}
+function brushWidth() {
+  const canvas = $("mask-view");
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return state.brush;
+  return state.brush * (canvas.width / rect.width);
+}
+function pushUndo() {
+  const canvas = $("mask-view");
+  if (!canvas.width) return;
+  mask.undo.push(getMaskContext().getImageData(0, 0, canvas.width, canvas.height));
+  if (mask.undo.length > 20) mask.undo.shift();
+  $("undo").disabled = false;
+}
+function exportMask() {
+  const src = $("mask-view");
+  const ctx = getMaskContext();
+  const img = ctx.getImageData(0, 0, src.width, src.height);
+  const out = document.createElement("canvas");
+  out.width = src.width;
+  out.height = src.height;
+  const octx = out.getContext("2d");
+  const bin = octx.createImageData(src.width, src.height);
+  let painted = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] > 16) {
+      painted += 1;
+      bin.data[i] = 255;
+      bin.data[i + 1] = 255;
+      bin.data[i + 2] = 255;
+      bin.data[i + 3] = 255;
+    }
+  }
+  octx.putImageData(bin, 0, 0);
+  return { bin: out, empty: painted < 24 };
+}
+function bakeGray(binCanvas) {
+  const canvas = document.createElement("canvas");
+  canvas.width = binCanvas.width;
+  canvas.height = binCanvas.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage($("mask-img"), 0, 0, canvas.width, canvas.height);
+  const base = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const bits = binCanvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < bits.data.length; i += 4) {
+    if (bits.data[i + 3] > 16) {
+      base.data[i] = 141;
+      base.data[i + 1] = 138;
+      base.data[i + 2] = 132;
+      base.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(base, 0, 0);
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+function replicateMask(binCanvas) {
+  const canvas = document.createElement("canvas");
+  canvas.width = binCanvas.width;
+  canvas.height = binCanvas.height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(binCanvas, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+async function openaiPair(sourceUrl, binCanvas) {
+  const size = 1024;
+  const img = await loadImage(sourceUrl);
+  const imageC = document.createElement("canvas");
+  imageC.width = size;
+  imageC.height = size;
+  const ictx = imageC.getContext("2d");
+  ictx.fillStyle = "#000";
+  ictx.fillRect(0, 0, size, size);
+  const scale = Math.min(size / img.width, size / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  const x = (size - w) / 2;
+  const y = (size - h) / 2;
+  ictx.drawImage(img, x, y, w, h);
+  const tmp = document.createElement("canvas");
+  tmp.width = binCanvas.width;
+  tmp.height = binCanvas.height;
+  const tctx = tmp.getContext("2d");
+  const bin = binCanvas.getContext("2d").getImageData(0, 0, binCanvas.width, binCanvas.height);
+  const data = tctx.createImageData(bin.width, bin.height);
+  for (let i = 0; i < bin.data.length; i += 4) {
+    if (bin.data[i + 3] <= 16) {
+      data.data[i] = 255;
+      data.data[i + 1] = 255;
+      data.data[i + 2] = 255;
+      data.data[i + 3] = 255;
+    }
+  }
+  tctx.putImageData(data, 0, 0);
+  const maskC = document.createElement("canvas");
+  maskC.width = size;
+  maskC.height = size;
+  const mctx = maskC.getContext("2d");
+  mctx.fillStyle = "#fff";
+  mctx.fillRect(0, 0, size, size);
+  mctx.drawImage(tmp, x, y, w, h);
+  return { image: await canvasToBlob(imageC), mask: await canvasToBlob(maskC) };
+}
+
+function pointerPos(event) {
+  const canvas = $("mask-view");
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+  };
+}
+function paintDot(point) {
+  const ctx = getMaskContext();
+  const radius = brushWidth() / 2;
+  ctx.fillStyle = "rgba(231, 226, 216, 0.92)";
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+function paintLine(from, to) {
+  const ctx = getMaskContext();
+  ctx.strokeStyle = "rgba(231, 226, 216, 0.92)";
+  ctx.lineWidth = brushWidth();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+function moveRing(event) {
+  const ring = $("brush-ring");
+  const fit = $("mask-fit");
+  const rect = fit.getBoundingClientRect();
+  ring.style.display = "block";
+  ring.style.width = state.brush + "px";
+  ring.style.height = state.brush + "px";
+  ring.style.left = event.clientX - rect.left + "px";
+  ring.style.top = event.clientY - rect.top + "px";
+}
+
+async function setSource(dataUrl) {
+  const img = await loadImage(dataUrl);
+  const edge = Math.max(img.width, img.height);
+  const scale = Math.min(1, 1536 / edge);
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+  const png = dataUrl.startsWith("data:image/png");
+  const out = canvas.toDataURL(png ? "image/png" : "image/jpeg", 0.92);
+  state.source = { dataUrl: out, width: w, height: h };
+  if (!state.refs.some(Boolean)) state.refs[0] = state.source;
+  $("preview").hidden = false;
+  $("preview").src = out;
+  $("drop-label").hidden = true;
+  $("mask-img").src = out;
+  const view = $("mask-view");
+  view.width = w;
+  view.height = h;
+  mask.undo = [];
+  $("undo").disabled = true;
+  sync();
+}
+function filledRefs() {
+  const list = [];
+  state.refs.forEach((ref, index) => {
+    if (ref) list.push({ index: index + 1, dataUrl: ref.dataUrl, width: ref.width, height: ref.height });
+  });
+  return list;
+}
+function renderRefs() {
+  const board = $("ref-grid");
+  if (!board) return;
+  state.refs.forEach((ref, index) => {
+    const tile = board.querySelector(`[data-slot="${index}"]`);
+    if (!tile) return;
+    const img = tile.querySelector("img");
+    const plus = tile.querySelector(".ref-plus");
+    const clear = tile.querySelector(".ref-x");
+    const add = tile.querySelector(".ref-add");
+    const on = Boolean(ref);
+    img.hidden = !on;
+    plus.hidden = on;
+    clear.hidden = !on;
+    if (on) img.src = ref.dataUrl;
+    else img.removeAttribute("src");
+    add.setAttribute("aria-label", on ? `Zmień zdjęcie ${index + 1}` : `Wgraj zdjęcie ${index + 1}`);
+  });
+  const count = state.refs.filter(Boolean).length;
+  const hint = $("ref-hint");
+  if (hint) {
+    hint.textContent = count < 2
+      ? "Wgraj co najmniej dwa zdjęcia. W opisie pisz Zdjęcie #1, Zdjęcie #2, Zdjęcie #3, Zdjęcie #4."
+      : `W zestawie ${count} z 4. W opisie odwołuj się do numerów na kafelkach.`;
+  }
+}
+async function compressRef(dataUrl) {
+  const img = await loadImage(dataUrl);
+  const edge = Math.max(img.width, img.height);
+  const scale = Math.min(1, 1024 / edge);
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+  const png = dataUrl.startsWith("data:image/png");
+  const out = canvas.toDataURL(png ? "image/png" : "image/jpeg", 0.86);
+  return { dataUrl: out, width: w, height: h };
+}
+async function putRef(slot, dataUrl) {
+  state.refs[slot] = await compressRef(dataUrl);
+  if (state.mode !== "mask") {
+    state.source = state.refs.find(Boolean) || null;
+    const first = state.source;
+    if (first && !$("mask-img").getAttribute("src")) {
+      $("preview").hidden = false;
+      $("preview").src = first.dataUrl;
+      $("drop-label").hidden = true;
+      $("mask-img").src = first.dataUrl;
+      $("mask-view").width = first.width;
+      $("mask-view").height = first.height;
+    }
+  }
+  renderRefs();
+}
+function clearRef(slot) {
+  state.refs[slot] = null;
+  if (state.mode !== "mask") state.source = state.refs.find(Boolean) || null;
+  renderRefs();
+}
+async function ingestMany(files, startSlot) {
+  const images = [...files].filter((file) => file.type.startsWith("image/"));
+  if (!images.length) {
+    showError("Wybierz plik obrazu.");
+    return;
+  }
+  clearError();
+  let slot = startSlot;
+  let placed = 0;
+  try {
+    for (const file of images) {
+      if (placed === 0) slot = startSlot;
+      else {
+        while (slot < 4 && state.refs[slot]) slot += 1;
+      }
+      if (slot > 3) {
+        showNote("Można wgrać najwyżej 4 zdjęcia.");
+        break;
+      }
+      await putRef(slot, await readFile(file));
+      placed += 1;
+      slot += 1;
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+}
+async function mergeRefs(refs) {
+  const images = [];
+  for (const ref of refs) images.push(await loadImage(ref.dataUrl));
+  const gap = 16;
+  const height = 720;
+  const widths = images.map((img) => Math.max(1, Math.round(img.width * (height / img.height))));
+  let total = widths.reduce((sum, width) => sum + width, 0) + gap * (images.length - 1);
+  let canvas = document.createElement("canvas");
+  canvas.width = total;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#141413";
+  ctx.fillRect(0, 0, total, height);
+  let x = 0;
+  images.forEach((img, i) => {
+    ctx.drawImage(img, x, 0, widths[i], height);
+    const label = "#" + refs[i].index;
+    ctx.font = "600 28px sans-serif";
+    const pad = 14;
+    const boxW = ctx.measureText(label).width + pad * 2;
+    ctx.fillStyle = "rgba(12, 12, 11, 0.78)";
+    ctx.fillRect(x + 12, 12, boxW, 40);
+    ctx.fillStyle = "#f3f1ec";
+    ctx.fillText(label, x + 12 + pad, 40);
+    x += widths[i] + gap;
+  });
+  const maxEdge = 2048;
+  if (canvas.width > maxEdge) {
+    const scaled = document.createElement("canvas");
+    scaled.width = maxEdge;
+    scaled.height = Math.max(1, Math.round(canvas.height * (maxEdge / canvas.width)));
+    scaled.getContext("2d").drawImage(canvas, 0, 0, scaled.width, scaled.height);
+    canvas = scaled;
+  }
+  return canvas.toDataURL("image/jpeg", 0.88);
+}
+function imageTransport(provider, model) {
+  const name = String(model || "").toLowerCase();
+  if (provider === "xai" || provider === "builtin") return "array";
+  if (provider === "openai") return /dall-e-2|dall-e-3/.test(name) ? "merge" : "multipart";
+  if (provider === "replicate" && /image[_-]?prompt|input_images|multi|reference/.test(name)) return "replicate-array";
+  return "merge";
+}
+async function preparePack() {
+  const refs = filledRefs();
+  const merged = refs.length > 1 ? await mergeRefs(refs) : refs[0].dataUrl;
+  return { refs, merged, primary: refs[0].dataUrl };
+}
+async function ingest(file) {
+  if (!file || !file.type.startsWith("image/")) {
+    showError("Wybierz plik obrazu.");
+    return;
+  }
+  clearError();
+  try {
+    await setSource(await readFile(file));
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("carta", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("shots")) {
+        const store = db.createObjectStore("shots", { keyPath: "id" });
+        store.createIndex("created", "created");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbAll() {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("shots", "readonly");
+    const req = tx.objectStore("shots").getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(shot) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("shots", "readwrite");
+    tx.objectStore("shots").put(shot);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbDelete(id) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("shots", "readwrite");
+    tx.objectStore("shots").delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbClear() {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("shots", "readwrite");
+    tx.objectStore("shots").clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadGallery() {
+  const rows = await idbAll();
+  rows.sort((a, b) => b.created - a.created);
+  state.shots = rows.slice(0, 24);
+  renderGallery();
+}
+async function remember(shot) {
+  state.shots.unshift(shot);
+  state.shots = state.shots.slice(0, 24);
+  renderGallery();
+  try {
+    await idbPut(shot);
+    const extra = state.shots.slice(24);
+    for (const old of extra) await idbDelete(old.id);
+    if (state.shots.length >= 24) {
+      const all = await idbAll();
+      all.sort((a, b) => a.created - b.created);
+      while (all.length > 24) {
+        const oldest = all.shift();
+        await idbDelete(oldest.id);
+      }
+    }
+  } catch {
+    showNote("Galeria nie zmieściła tej odbitki w pamięci przeglądarki. Pobierz ją teraz.");
+  }
+}
+function renderGallery() {
+  const root = $("gallery");
+  root.replaceChildren();
+  $("gallery-count").textContent = String(state.shots.length);
+  if (!state.shots.length) {
+    const p = document.createElement("p");
+    p.className = "empty-note";
+    p.textContent = "Galeria jest pusta. Odbitki zostają w tej przeglądarce.";
+    root.append(p);
+    return;
+  }
+  for (const shot of state.shots) {
+    const card = document.createElement("article");
+    card.className = "shot";
+    const media = mediaEl(shot, true);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const buttons = [iconButton("Pobierz", downloadIcon(), () => download(shot.src, fileName(shot)))];
+    if (!isVideoSrc(shot)) buttons.push(iconButton("Użyj jako wejście", imageIcon(), () => useShot(shot)));
+    buttons.push(iconButton("Usuń", trashIcon(), () => { void removeShot(shot.id); }));
+    actions.append(...buttons);
+    card.append(media, actions);
+    root.append(card);
+  }
+}
+function iconButton(label, svg, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "icon-btn";
+  btn.setAttribute("aria-label", label);
+  btn.innerHTML = svg;
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onClick(btn);
+  });
+  return btn;
+}
+function downloadIcon() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+}
+function trashIcon() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+}
+function imageIcon() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+}
+async function removeShot(id) {
+  const key = String(id);
+  state.shots = state.shots.filter((shot) => String(shot.id) !== key);
+  document.querySelectorAll("[data-shot]").forEach((node) => {
+    if (node.getAttribute("data-shot") === key) node.remove();
+  });
+  renderGallery();
+  refreshEmpty();
+  try { await idbDelete(id); } catch { showNote("Nie udało się usunąć odbitki z pamięci przeglądarki."); }
+}
+async function useShot(shot) {
+  try {
+    const slot = state.refs.findIndex((item) => !item);
+    await putRef(slot < 0 ? 0 : slot, shot.src);
+    state.mode = "image";
+    sync();
+    $("prompt").focus();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+function isVideoSrc(shot) {
+  const src = String(shot?.src || "");
+  return shot?.mode === "video" || src.startsWith("data:video") || /\.mp4(\?|$)/i.test(src);
+}
+function mediaEl(shot, thumb) {
+  if (!isVideoSrc(shot)) {
+    const img = document.createElement("img");
+    img.src = shot.src;
+    img.alt = shot.prompt || "Odbitka";
+    return img;
+  }
+  const video = document.createElement("video");
+  video.src = shot.src;
+  video.playsInline = true;
+  video.muted = true;
+  video.loop = true;
+  video.controls = !thumb;
+  video.setAttribute("playsinline", "");
+  return video;
+}
+function fileName(shot) {
+  if (isVideoSrc(shot)) return `carta-${shot.id.slice(0, 8)}.mp4`;
+  const ext = String(shot.src).startsWith("data:image/png") ? "png" : "jpg";
+  return `carta-${shot.id.slice(0, 8)}.${ext}`;
+}
+async function asBlob(src) {
+  if (String(src).startsWith("data:")) return dataUrlToBlob(src);
+  const res = await fetch(src);
+  if (!res.ok) throw new Error("Nie udało się pobrać pliku.");
+  return res.blob();
+}
+function saveBlob(blob, name) {
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = name;
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 15000);
+}
+async function download(src, name) {
+  const video = /\.mp4$/i.test(name) || String(src).startsWith("data:video") || /\.mp4(\?|$)/i.test(String(src));
+  if (video && String(src).startsWith("data:")) {
+    saveBlob(new Blob([dataUrlToBlob(src)], { type: "video/mp4" }), name);
+    return;
+  }
+  let blob;
+  try {
+    blob = await asBlob(src);
+  } catch {
+    if (video) {
+      showError("Nie udało się zapisać filmu na urządzeniu.");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = src;
+    link.download = name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    return;
+  }
+  if (video) blob = new Blob([blob], { type: "video/mp4" });
+  saveBlob(blob, name);
+}
+
+function refreshEmpty() {
+  const has = $("results").querySelector("figure, .skel");
+  $("empty").hidden = !!has;
+}
+function renderSkeletons(n) {
+  const grid = $("results");
+  grid.classList.toggle("multi", n > 1);
+  grid.style.setProperty("--ar", aspectCss());
+  grid.replaceChildren();
+  for (let i = 0; i < n; i += 1) {
+    const el = document.createElement("div");
+    el.className = "skel";
+    el.style.setProperty("--ar", aspectCss());
+    const label = document.createElement("p");
+    label.className = "skel-label";
+    label.textContent = "0:00";
+    el.append(label);
+    grid.append(el);
+  }
+  refreshEmpty();
+}
+function aspectCss() {
+  return state.aspect.replace(":", " / ");
+}
+function dropPending() {
+  document.querySelectorAll(".skel").forEach((el) => el.remove());
+  refreshEmpty();
+}
+async function place(index, src, prompt, mode) {
+  const shot = {
+    id: crypto.randomUUID(),
+    src,
+    prompt,
+    mode,
+    created: Date.now(),
+  };
+  const grid = $("results");
+  const slot = grid.children[index];
+  const card = figureFor(shot, true);
+  if (slot) slot.replaceWith(card);
+  else grid.append(card);
+  refreshEmpty();
+  await remember(shot);
+  return shot;
+}
+function figureFor(shot, withDelete) {
+  const card = document.createElement("figure");
+  card.className = "card" + (String(shot.src).startsWith("data:image/png") ? " checker" : "");
+  card.dataset.shot = shot.id;
+  card.style.setProperty("--ar", aspectCss());
+  const media = mediaEl(shot, false);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  cap.textContent = shot.prompt || "Narzędzie";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "text-btn";
+  save.textContent = "Pobierz";
+  save.addEventListener("click", () => download(shot.src, fileName(shot)));
+  const again = document.createElement("button");
+  again.type = "button";
+  again.className = "text-btn";
+  again.textContent = "Jako wejście";
+  again.addEventListener("click", () => useShot(shot));
+  actions.append(save);
+  if (!isVideoSrc(shot)) actions.append(again);
+  if (withDelete) {
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "text-btn";
+    del.textContent = "Usuń";
+    del.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void removeShot(shot.id);
+    });
+    actions.append(del);
+  }
+  const caption = document.createElement("figcaption");
+  caption.append(cap, actions);
+  card.append(media, caption);
+  return card;
+}
+
+function applyProxy(url) {
+  const proxy = state.proxy.trim();
+  if (!proxy) return url;
+  if (proxy.includes("{url}")) return proxy.replaceAll("{url}", encodeURIComponent(url));
+  if (/[?=&]$/.test(proxy)) return proxy + encodeURIComponent(url);
+  return url;
+}
+async function request(url, options, signal) {
+  try {
+    return await fetch(applyProxy(url), { ...options, signal });
+  } catch (err) {
+    if (err?.name === "AbortError") throw err;
+    const blocked = new Error("Przeglądarka zablokowała połączenie (CORS albo sieć). Użyj Flux w przeglądarce, wbudowanego Grok albo własnego adresu bazowego w ustawieniach.");
+    blocked.code = "cors";
+    throw blocked;
+  }
+}
+async function readError(res) {
+  const text = await res.text();
+  let msg = text.slice(0, 400);
+  try {
+    const json = JSON.parse(text);
+    const raw = json.error?.message || json.error || json.detail || json.message || json.title || msg;
+    msg = typeof raw === "string" ? raw : JSON.stringify(raw);
+  } catch { /* text */ }
+  const low = msg.toLowerCase();
+  if (res.status === 401 || res.status === 403) return "Klucz API odrzucony. Sprawdź go w ustawieniach.";
+  if (res.status === 402 || /billing|quota|insufficient|credit|payment|funds/.test(low)) {
+    return "Brak środków lub limit konta: " + msg;
+  }
+  if (res.status === 429) return "Za dużo zapytań. Odczekaj chwilę. " + msg;
+  if (res.status === 400 || res.status === 422) return "Zapytanie odrzucone: " + msg;
+  return `Błąd ${res.status}: ${msg}`;
+}
+async function urlToDataUrl(url) {
+  if (url.startsWith("data:image/")) return url;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    if (!blob.type.startsWith("image/")) return url;
+    return await blobToDataUrl(blob);
+  } catch {
+    return url;
+  }
+}
+async function imagesFromJson(json) {
+  const list = [];
+  const bucket = [];
+  if (Array.isArray(json?.data)) bucket.push(...json.data);
+  if (json?.image) bucket.push(json.image);
+  for (const item of bucket) {
+    if (!item) continue;
+    if (typeof item === "string") list.push(await urlToDataUrl(item));
+    else if (item.b64_json) list.push(`data:image/png;base64,${item.b64_json}`);
+    else if (item.base64) list.push(`data:image/png;base64,${item.base64}`);
+    else if (item.url) list.push(await urlToDataUrl(item.url));
+  }
+  if (typeof json?.output === "string") list.push(await urlToDataUrl(json.output));
+  if (Array.isArray(json?.output)) {
+    for (const item of json.output) {
+      if (typeof item === "string") list.push(await urlToDataUrl(item));
+      else if (item?.url) list.push(await urlToDataUrl(item.url));
+    }
+  }
+  return list.filter(Boolean);
+}
+async function parseImageResponse(res) {
+  if (!res.ok) throw new Error(await readError(res));
+  const type = res.headers.get("content-type") || "";
+  if (type.includes("application/json") || type.includes("text/")) {
+    const json = await res.json().catch(() => ({}));
+    const images = await imagesFromJson(json);
+    if (images.length) return images;
+    const raw = json.error || json.message || json.detail;
+    throw new Error(typeof raw === "string" ? raw : "Dostawca nie zwrócił obrazu.");
+  }
+  if (type.startsWith("image/")) return [await blobToDataUrl(await res.blob())];
+  throw new Error("Nieznana odpowiedź dostawcy.");
+}
+function requireKey() {
+  const key = state.apiKey.trim();
+  if (!key) throw new Error("Wpisz klucz API w ustawieniach.");
+  return key;
+}
+function baseOf(fallback) {
+  return (state.baseUrl.trim() || fallback).replace(/\/$/, "");
+}
+function composedPrompt(mode) {
+  const prompt = $("prompt").value.trim();
+  const style = STYLES[state.style];
+  let text = style.suffix ? prompt + style.suffix : prompt;
+  const negative = state.negative.trim();
+  if (negative && state.provider !== "replicate") text += `. Avoid: ${negative}`;
+  if (mode === "image") {
+    const filled = filledRefs();
+    const legend = filled.map((ref, order) => `attached image ${order + 1} is Zdjęcie #${ref.index} (Photo #${ref.index})`).join("; ");
+    const sheet = imageTransport(state.provider, state.model) === "merge"
+      ? "The input image is a side-by-side contact sheet and each panel is labeled with its photo number. "
+      : "";
+    text = `${sheet}Reference photos: ${legend}. When the prompt cites Zdjęcie #N or Photo #N, use that photo. Strength of change ${state.denoise.toFixed(2)} where 0 keeps the references and 1 reinterprets them. ${text}`;
+  }
+  if (mode === "mask" && !maskNative(state.provider)) {
+    text = `Edit the image. Replace only the flat gray (#8d8a84) region. Everything outside that region must stay unchanged. Fill the gray region with: ${text}`;
+  }
+  if (mode === "video") {
+    const filled = filledVideoRefs();
+    if (filled.length === 1) {
+      text = `Animate the source still. ${text}`;
+    } else if (filled.length > 1 && (state.provider === "xai" || state.provider === "builtin")) {
+      const legend = filled.map((ref, order) => `<IMAGE_${order + 1}> is Zdjęcie #${ref.index}`).join("; ");
+      text = `Use the reference stills. ${legend}. When the prompt cites Zdjęcie #N, use that still. ${text}`;
+    } else if (filled.length > 1) {
+      text = `The input image is a side-by-side contact sheet. Each panel is labeled with its photo number. ${text}`;
+    }
+  }
+  return text;
+}
+function openaiSize(aspect) {
+  if (aspect === "9:16" || aspect === "2:3") return "1024x1792";
+  if (aspect === "16:9" || aspect === "4:3") return "1792x1024";
+  return "1024x1024";
+}
+
+async function callBuiltin(payload, signal) {
+  const res = await fetch("api/carta", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  const data = await res.json();
+  if (data.note) showNote(data.note);
+  if (!Array.isArray(data.images) || !data.images.length) throw new Error("Atelier nie zwróciło obrazu.");
+  return data.images;
+}
+async function callXai(prompt, image, signal, pack) {
+  const key = requireKey();
+  const base = baseOf("https://api.x.ai/v1");
+  const model = state.model.trim() || "grok-imagine-image-2.0";
+  if (!image && !pack) {
+    const res = await request(base + "/images/generations", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        n: 1,
+        aspect_ratio: state.aspect,
+        resolution: "1k",
+        response_format: "b64_json",
+      }),
+    }, signal);
+    return (await parseImageResponse(res))[0];
+  }
+  const many = pack && pack.refs.length >= 2;
+  const res = await request(base + "/images/edits", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(many ? {
+      model,
+      prompt,
+      images: pack.refs.map((ref) => ({ type: "image_url", url: ref.dataUrl })),
+      aspect_ratio: state.aspect,
+    } : {
+      model,
+      prompt,
+      image: { url: image, type: "image_url" },
+    }),
+  }, signal);
+  return (await parseImageResponse(res))[0];
+}
+async function callOpenai(prompt, mode, bin, signal, pack) {
+  const key = requireKey();
+  const base = baseOf("https://api.openai.com/v1");
+  if (mode === "text") {
+    const model = state.model.trim() || "dall-e-3";
+    const res = await request(base + "/images/generations", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        n: 1,
+        size: openaiSize(state.aspect),
+        response_format: "b64_json",
+      }),
+    }, signal);
+    return (await parseImageResponse(res))[0];
+  }
+  if (mode === "image" && pack && pack.refs.length >= 2 && imageTransport("openai", state.model) === "multipart") {
+    const model = state.model.trim() || "gpt-image-1";
+    const form = new FormData();
+    form.append("model", model);
+    form.append("prompt", prompt.slice(0, 32000));
+    form.append("n", "1");
+    form.append("size", openaiSize(state.aspect).replace("1792", "1536"));
+    for (const ref of pack.refs) form.append("image", dataUrlToBlob(ref.dataUrl), `zdjecie-${ref.index}.png`);
+    const res = await request(base + "/images/edits", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    }, signal);
+    return (await parseImageResponse(res))[0];
+  }
+  const model = state.model.trim() && state.model.trim() !== "dall-e-3" ? state.model.trim() : "dall-e-2";
+  const sourceUrl = mode === "image" && pack && pack.refs.length >= 2 ? pack.merged : state.source.dataUrl;
+  const pair = await openaiPair(sourceUrl, bin || emptyBin());
+  const form = new FormData();
+  form.append("model", model);
+  form.append("prompt", prompt.slice(0, 1000));
+  form.append("n", "1");
+  form.append("size", "1024x1024");
+  form.append("response_format", "b64_json");
+  form.append("image", pair.image, "image.png");
+  if (mode === "mask") form.append("mask", pair.mask, "mask.png");
+  const res = await request(base + "/images/edits", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}` },
+    body: form,
+  }, signal);
+  return (await parseImageResponse(res))[0];
+}
+function emptyBin() {
+  const canvas = document.createElement("canvas");
+  canvas.width = state.source?.width || 8;
+  canvas.height = state.source?.height || 8;
+  return canvas;
+}
+async function callHf(prompt, image, signal) {
+  const key = requireKey();
+  const base = baseOf("https://router.huggingface.co/v1");
+  const model = state.model.trim() || "black-forest-labs/FLUX.1-schnell";
+  const body = { model, prompt, response_format: "b64_json" };
+  if (image) body.image = image;
+  const res = await request(base + "/images/generations", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }, signal);
+  return (await parseImageResponse(res))[0];
+}
+async function callReplicate(mode, prompt, bin, signal, pack) {
+  const key = requireKey();
+  const base = baseOf("https://api.replicate.com/v1");
+  let model = state.model.trim();
+  const input = { prompt };
+  if (!model) {
+    if (mode === "mask") model = "black-forest-labs/flux-fill-dev";
+    else if (mode === "image") model = "black-forest-labs/flux-dev";
+    else model = "black-forest-labs/flux-schnell";
+  }
+  if (model.includes("stable-diffusion-3")) {
+    input.aspect_ratio = state.aspect;
+    input.cfg = state.cfg;
+    input.steps = state.steps;
+    if (state.negative.trim()) input.negative_prompt = state.negative.trim();
+  } else if (model.includes("flux-fill")) {
+    input.image = state.source.dataUrl;
+    input.mask = replicateMask(bin);
+    input.steps = state.steps;
+    input.guidance = state.cfg;
+  } else if (mode === "image") {
+    const many = pack && pack.refs.length >= 2;
+    const transport = imageTransport("replicate", model);
+    input.image = many && transport === "merge" ? pack.merged : (state.source?.dataUrl || pack?.primary);
+    if (many && transport === "replicate-array") {
+      input.image_prompts = pack.refs.map((ref) => ref.dataUrl);
+      input.input_images = pack.refs.map((ref) => ref.dataUrl);
+    }
+    input.prompt_strength = state.denoise;
+    input.aspect_ratio = state.aspect;
+    input.num_inference_steps = state.steps;
+    input.guidance_scale = state.cfg;
+    input.output_format = "jpg";
+  } else {
+    input.aspect_ratio = state.aspect;
+    input.num_outputs = 1;
+    input.output_format = "jpg";
+    if (!model.includes("schnell")) {
+      input.num_inference_steps = state.steps;
+      input.guidance_scale = state.cfg;
+    }
+    if (state.negative.trim()) input.negative_prompt = state.negative.trim();
+  }
+  let pred = await replicatePost(`${base}/models/${model}/predictions`, { input }, key, signal);
+  const started = Date.now();
+  while (pred.status === "starting" || pred.status === "processing") {
+    if (Date.now() - started > 120000) throw new Error("Replicate nie zdążyło w dwie minuty.");
+    await sleep(2000, signal);
+    const poll = await request(pred.urls.get, { headers: { Authorization: `Bearer ${key}` } }, signal);
+    if (!poll.ok) throw new Error(await readError(poll));
+    pred = await poll.json();
+  }
+  if (pred.status === "failed" || pred.error) {
+    throw new Error(typeof pred.error === "string" ? pred.error : "Replicate odrzuciło zadanie.");
+  }
+  const images = await imagesFromJson(pred);
+  if (!images.length) throw new Error("Replicate nie zwróciło obrazu.");
+  return images[0];
+}
+async function replicatePost(url, body, key, signal) {
+  const res = await request(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "wait=60",
+    },
+    body: JSON.stringify(body),
+  }, signal);
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json();
+}
+async function callFlux(prompt, signal) {
+  const [w, h] = SIZES[state.aspect];
+  const seed = Math.floor(Math.random() * 1e9);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&model=flux&seed=${seed}&nofeed=true`;
+  const res = await request(url, { method: "GET" }, signal);
+  const images = await parseImageResponse(res);
+  return images[0];
+}
+async function dispatchOne(mode, prompt, bin, signal, pack) {
+  const provider = state.provider;
+  if (provider === "xai") {
+    const image = mode === "mask" ? bakeGray(bin) : mode === "image" ? (pack?.primary || state.source.dataUrl) : null;
+    return callXai(prompt, image, signal, mode === "image" ? pack : null);
+  }
+  if (provider === "openai") return callOpenai(prompt, mode, bin, signal, pack);
+  if (provider === "hf") {
+    const transport = imageTransport("hf", state.model);
+    const image = mode === "mask"
+      ? bakeGray(bin)
+      : mode === "image"
+        ? (pack && transport === "merge" ? pack.merged : state.source.dataUrl)
+        : null;
+    return callHf(prompt, image, signal);
+  }
+  if (provider === "replicate") return callReplicate(mode, prompt, bin, signal, pack);
+  return callFlux(prompt, signal);
+}
+
+let timerId = 0;
+let jobStarted = 0;
+function beginJob(label) {
+  state.busy = true;
+  state.abort = new AbortController();
+  jobStarted = performance.now();
+  $("status").hidden = false;
+  $("status-text").textContent = label;
+  $("timer").textContent = "0:00";
+  $("go").textContent = "Anuluj";
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    const text = fmt(performance.now() - jobStarted);
+    $("timer").textContent = text;
+    document.querySelectorAll(".skel-label").forEach((el) => {
+      el.textContent = text;
+    });
+  }, 200);
+  return state.abort.signal;
+}
+function endJob() {
+  state.busy = false;
+  clearInterval(timerId);
+  $("status").hidden = true;
+  $("go").textContent = state.mode === "video" ? "Generuj film" : "Generuj";
+}
+
+function filledVideoRefs() {
+  const list = [];
+  state.videoRefs.forEach((ref, index) => {
+    if (ref) list.push({ index: index + 1, dataUrl: ref.dataUrl, width: ref.width, height: ref.height });
+  });
+  return list;
+}
+function paintVideoField() {
+  const board = $("video-grid");
+  if (!board) return;
+  state.videoRefs.forEach((ref, index) => {
+    const tile = board.querySelector(`[data-vslot="${index}"]`);
+    if (!tile) return;
+    const img = tile.querySelector("img");
+    const plus = tile.querySelector(".ref-plus");
+    const clear = tile.querySelector(".ref-x");
+    const add = tile.querySelector(".ref-add");
+    const on = Boolean(ref);
+    img.hidden = !on;
+    plus.hidden = on;
+    clear.hidden = !on;
+    if (on) img.src = ref.dataUrl;
+    else img.removeAttribute("src");
+    add.setAttribute("aria-label", on ? `Zmień zdjęcie ${index + 1}` : `Wgraj zdjęcie ${index + 1}`);
+  });
+  $("video-clear").disabled = !state.videoRefs.some(Boolean);
+}
+async function putVideoRef(slot, dataUrl) {
+  state.videoRefs[slot] = await compressRef(dataUrl);
+  paintVideoField();
+  clearError();
+}
+function clearVideoRef(slot) {
+  state.videoRefs[slot] = null;
+  paintVideoField();
+}
+function clearVideoStill() {
+  state.videoRefs = [null, null, null, null];
+  paintVideoField();
+}
+async function ingestVideo(files, startSlot) {
+  const images = [...files].filter((file) => file.type.startsWith("image/"));
+  if (!images.length) {
+    showError("Obraz startowy musi być plikiem graficznym.");
+    return;
+  }
+  clearError();
+  let slot = startSlot;
+  let placed = 0;
+  try {
+    for (const file of images) {
+      if (placed === 0) slot = startSlot;
+      else while (slot < 4 && state.videoRefs[slot]) slot += 1;
+      if (slot > 3) {
+        showNote("Można wgrać najwyżej 4 zdjęcia.");
+        break;
+      }
+      await putVideoRef(slot, await readFile(file));
+      placed += 1;
+      slot += 1;
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+}
+async function callXaiVideo(prompt, refs, signal) {
+  const key = requireKey();
+  const base = baseOf("https://api.x.ai/v1");
+  const model = state.model.trim() || "grok-imagine-video-1.5";
+  const body = {
+    model,
+    prompt,
+    duration: 6,
+    aspect_ratio: state.aspect,
+    resolution: "720p",
+  };
+  if (refs.length === 1) body.image = { url: refs[0].dataUrl };
+  else if (refs.length > 1) body.reference_images = refs.map((ref) => ({ url: ref.dataUrl }));
+  const res = await request(base + "/videos/generations", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }, signal);
+  if (!res.ok) throw new Error(await readError(res));
+  const data = await res.json();
+  const failed = videoFailed(data);
+  if (failed) throw new Error(failed);
+  const ready = videoUrlOf(data);
+  if (ready) return ready;
+  if (!data.request_id) throw new Error("Dostawca nie przyjął filmu.");
+  return pollXaiVideo(base, data.request_id, key, signal, refs.length > 0);
+}
+async function callReplicateVideo(prompt, refs, signal) {
+  const key = requireKey();
+  const base = baseOf("https://api.replicate.com/v1");
+  const model = state.model.trim() || "minimax/video-01";
+  const input = { prompt };
+  const image = refs.length > 1 ? await mergeRefs(refs) : refs[0]?.dataUrl || "";
+  if (image) {
+    if (/minimax|video-01|hailuo/i.test(model)) input.first_frame_image = image;
+    else if (/kling|luma|ray|wan|seedance/i.test(model)) input.start_image = image;
+    else input.image = image;
+  }
+  let body = await replicatePost(`${base}/models/${model}/predictions`, { input }, key, signal);
+  const started = Date.now();
+  while (body.status === "starting" || body.status === "processing") {
+    if (Date.now() - started > 240000) throw new Error("Replicate nie zdążyło z filmem.");
+    $("status-text").textContent = refs.length ? "Ożywianie obrazu" : "Film z opisu";
+    await sleep(3000, signal);
+    const poll = await request(body.urls.get, { headers: { Authorization: `Bearer ${key}` } }, signal);
+    if (!poll.ok) throw new Error(await readError(poll));
+    body = await poll.json();
+  }
+  if (body.error) throw new Error(typeof body.error === "string" ? body.error : "Replicate odrzuciło film.");
+  const url = videoUrlOf(body) || (await imagesFromJson(body))[0];
+  if (!url) throw new Error("Replicate nie zwróciło filmu.");
+  return url;
+}
+async function dispatchVideo(prompt, signal) {
+  const refs = filledVideoRefs();
+  if (state.provider === "builtin") {
+    const clips = await callBuiltin({
+      mode: "video",
+      prompt,
+      negative: state.negative,
+      aspect: state.aspect,
+      n: 1,
+      image: refs.length === 1 ? refs[0].dataUrl : undefined,
+      images: refs.length > 1 ? refs.map((ref) => ref.dataUrl) : undefined,
+    }, signal);
+    return clips[0];
+  }
+  if (state.provider === "xai") return callXaiVideo(prompt, refs, signal);
+  if (state.provider === "replicate") return callReplicateVideo(prompt, refs, signal);
+  throw new Error("Ten dostawca nie generuje wideo.");
+}
+function videoUrlOf(data) {
+  if (!data || typeof data !== "object") return "";
+  if (typeof data.video?.url === "string") return data.video.url;
+  if (typeof data.output === "string") return data.output;
+  if (typeof data.output?.url === "string") return data.output.url;
+  if (Array.isArray(data.output) && typeof data.output[0] === "string") return data.output[0];
+  if (typeof data.url === "string" && !data.request_id) return data.url;
+  return "";
+}
+function videoFailed(data) {
+  const status = String(data?.status || "").toLowerCase();
+  if (status === "failed" || status === "expired" || status === "error" || status === "cancelled") {
+    const raw = data.error || data.message;
+    return typeof raw === "string" ? raw : "Generowanie filmu nie powiodło się.";
+  }
+  return "";
+}
+async function pollXaiVideo(base, id, key, signal, hasImage) {
+  const started = Date.now();
+  while (Date.now() - started < 240000) {
+    $("status-text").textContent = hasImage ? "Ożywianie obrazu" : "Film z opisu";
+    await sleep(3000, signal);
+    const poll = await request(`${base}/videos/${id}`, { headers: { Authorization: `Bearer ${key}` } }, signal);
+    if (!poll.ok) throw new Error(await readError(poll));
+    const data = await poll.json();
+    const failed = videoFailed(data);
+    if (failed) throw new Error(failed);
+    const url = videoUrlOf(data);
+    if (url) return url;
+  }
+  throw new Error("Film nie zdążył w cztery minuty.");
+}
+async function settleVideo(url) {
+  if (!url || String(url).startsWith("data:")) return url;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    if (!blob.type.startsWith("video/") || blob.size > 6000000) return url;
+    return await blobToDataUrl(blob);
+  } catch {
+    return url;
+  }
+}
+async function runVideo(prompt) {
+  const signal = beginJob(filledVideoRefs().length ? "Ożywianie obrazu" : "Film z opisu");
+  renderSkeletons(1);
+  try {
+    const src = await dispatchVideo(composedPrompt("video"), signal);
+    if (!src) throw new Error("Dostawca nie zwrócił filmu.");
+    const saved = await settleVideo(src);
+    dropPending();
+    await place(0, saved, prompt, "video");
+    $("results").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  } catch (err) {
+    dropPending();
+    if (err?.name === "AbortError") showNote("Przerwano.");
+    else showError(err.message || "Nie udało się wygenerować filmu.");
+  } finally {
+    endJob();
+  }
+}
+
+async function onGenerate() {
+  if (state.busy) {
+    state.abort?.abort();
+    return;
+  }
+  clearError();
+  showNote("");
+  const mode = state.mode;
+  const prompt = $("prompt").value.trim();
+  if (!prompt) return fail(mode === "video" ? "Wpisz opis ruchu albo akcji." : "Wpisz opis obrazu.");
+  if (mode === "video" && (state.provider === "flux" || state.provider === "openai" || state.provider === "hf")) {
+    return fail("Film generuje wbudowany Grok, klucz xAI albo model wideo na Replicate.");
+  }
+  if (mode === "image" && filledRefs().length < 2) return fail("Wgraj co najmniej dwa zdjęcia. W opisie użyj numerów z kafelków.");
+  if (mode === "mask" && !state.source) return fail("Wgraj zdjęcie.");
+  if (state.provider === "flux" && mode !== "text") {
+    return fail("Flux w przeglądarce przyjmuje tylko opis. Do zdjęcia lub maski wybierz innego dostawcę.");
+  }
+  if (state.provider === "builtin" && !state.builtin) {
+    return fail("Wbudowany Grok jest niedostępny. Wybierz innego dostawcę.");
+  }
+  if (needsKey(state.provider) && !state.apiKey.trim()) {
+    openSheet();
+    return fail("Wpisz klucz API w ustawieniach.");
+  }
+  if (mode === "video") {
+    await runVideo(prompt);
+    return;
+  }
+  let bin = null;
+  if (mode === "mask") {
+    const painted = exportMask();
+    if (painted.empty) return fail("Zamaluj obszar, który ma się zmienić.");
+    bin = painted.bin;
+  }
+  let pack = null;
+  if (mode === "image") {
+    pack = await preparePack();
+    if (imageTransport(state.provider, state.model) === "merge") {
+      showNote("Ten model przyjmuje jeden kadr, więc zdjęcia zostały połączone obok siebie i podpisane numerami.");
+    }
+  }
+  const full = composedPrompt(mode);
+  const count = state.provider === "builtin" ? Math.min(state.count, 2) : state.count;
+  saveSettings();
+  const signal = beginJob("Generowanie");
+  renderSkeletons(count);
+  try {
+    if (state.provider === "builtin") {
+      const images = await callBuiltin({
+        mode: mode === "text" ? "text" : mode === "mask" ? "inpaint" : "image",
+        prompt: full,
+        negative: state.negative,
+        aspect: state.aspect,
+        n: state.count,
+        image: mode === "mask" ? bakeGray(bin) : mode === "image" ? pack.primary : undefined,
+        images: mode === "image" ? pack.refs.map((ref) => ref.dataUrl) : undefined,
+      }, signal);
+      for (let i = 0; i < images.length; i += 1) await place(i, images[i], prompt, mode);
+      dropPending();
+    } else {
+      for (let i = 0; i < count; i += 1) {
+        if (signal.aborted) break;
+        $("status-text").textContent = `Odbitka ${i + 1} z ${count}`;
+        const src = await dispatchOne(mode, full, bin, signal, pack);
+        if (!src) throw new Error("Dostawca nie zwrócił obrazu.");
+        await place(i, src, prompt, mode);
+      }
+    }
+    $("results").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  } catch (err) {
+    dropPending();
+    if (err?.name === "AbortError") showNote("Przerwano.");
+    else showError(err.message || "Nie udało się wygenerować obrazu.");
+  } finally {
+    endJob();
+  }
+}
+
+async function currentToolSource() {
+  if (state.source) return state.source.dataUrl;
+  if (state.shots[0]) {
+    await setSource(state.shots[0].src);
+    return state.source.dataUrl;
+  }
+  throw new Error("Wgraj zdjęcie albo wygeneruj odbitkę.");
+}
+async function removeBackground() {
+  if (state.busy) return;
+  clearError();
+  let src;
+  try { src = await currentToolSource(); } catch (err) { showError(err.message); return; }
+  const signal = beginJob("Usuwanie tła");
+  renderSkeletons(1);
+  try {
+    let out;
+    if (state.provider === "replicate" && state.apiKey.trim()) {
+      $("status-text").textContent = "Usuwanie tła · Replicate";
+      const pred = await replicatePost(
+        baseOf("https://api.replicate.com/v1") + "/models/lucataco/remove-bg/predictions",
+        { input: { image: src } },
+        requireKey(),
+        signal,
+      );
+      let body = pred;
+      const started = Date.now();
+      while (body.status === "starting" || body.status === "processing") {
+        if (Date.now() - started > 120000) throw new Error("Replicate nie zdążyło.");
+        await sleep(2000, signal);
+        const poll = await request(body.urls.get, { headers: { Authorization: `Bearer ${state.apiKey.trim()}` } }, signal);
+        if (!poll.ok) throw new Error(await readError(poll));
+        body = await poll.json();
+      }
+      if (body.error) throw new Error(typeof body.error === "string" ? body.error : "Replicate odrzuciło zadanie.");
+      out = (await imagesFromJson(body))[0];
+    } else if (state.provider === "hf" && state.apiKey.trim()) {
+      $("status-text").textContent = "Usuwanie tła · Hugging Face";
+      const res = await request("https://router.huggingface.co/hf-inference/models/briaai/RMBG-1.4", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${requireKey()}`,
+          "Content-Type": "application/octet-stream",
+        },
+        body: dataUrlToBlob(src),
+      }, signal);
+      out = (await parseImageResponse(res))[0];
+    } else {
+      $("status-text").textContent = "Pobieranie modelu tła";
+      const mod = await import("https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.6.0/dist/index.mjs");
+      const remove = mod.removeBackground || mod.default;
+      if (typeof remove !== "function") throw new Error("Model tła nie wstał.");
+      const blob = await remove(dataUrlToBlob(src), {
+        model: "small",
+        publicPath: "https://staticimgly.com/@imgly/background-removal-data/1.6.0/dist/",
+        progress: (key, current, total) => {
+          const pct = total ? Math.round((current / total) * 100) : 0;
+          const label = String(key).includes("fetch") ? "Pobieranie modelu" : "Liczenie maski";
+          $("status-text").textContent = `${label} ${pct}%`;
+        },
+      });
+      out = await blobToDataUrl(blob);
+    }
+    if (!out) throw new Error("Nie udało się usunąć tła.");
+    dropPending();
+    await place(0, out, "Usunięte tło", "tools");
+  } catch (err) {
+    dropPending();
+    if (err?.name === "AbortError") showNote("Przerwano.");
+    else showError(err.message || "Nie udało się usunąć tła.");
+  } finally {
+    endJob();
+  }
+}
+function unsharp(canvas, amount) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const w = canvas.width;
+  const h = canvas.height;
+  const src = ctx.getImageData(0, 0, w, h);
+  const data = src.data;
+  const out = new Uint8ClampedArray(data);
+  const idx = (x, y) => (y * w + x) * 4;
+  for (let y = 1; y < h - 1; y += 1) {
+    for (let x = 1; x < w - 1; x += 1) {
+      for (let c = 0; c < 3; c += 1) {
+        let sum = 0;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) sum += data[idx(x + dx, y + dy) + c];
+        }
+        const origin = data[idx(x, y) + c];
+        const sharp = origin + amount * (origin - sum / 9);
+        out[idx(x, y) + c] = Math.max(0, Math.min(255, sharp));
+      }
+    }
+  }
+  src.data.set(out);
+  ctx.putImageData(src, 0, 0);
+}
+async function localUpscale(src) {
+  const img = await loadImage(src);
+  const memory = navigator.deviceMemory || 8;
+  const cap = memory <= 4 ? 2048 : 3840;
+  const long = Math.max(img.width, img.height);
+  const target = Math.min(cap, Math.max(long, Math.round(long * 4)));
+  const scale = target / long;
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  let canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext("2d").drawImage(img, 0, 0);
+  let cw = img.width;
+  let ch = img.height;
+  while (cw < w || ch < h) {
+    const nw = Math.min(w, cw * 2);
+    const nh = Math.min(h, ch * 2);
+    const next = document.createElement("canvas");
+    next.width = nw;
+    next.height = nh;
+    const ctx = next.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, nw, nh);
+    canvas = next;
+    cw = nw;
+    ch = nh;
+    await tick();
+  }
+  $("status-text").textContent = "Wyostrzanie";
+  await tick();
+  if (cw * ch <= 2048 * 2048) unsharp(canvas, 0.35);
+  const note = cap < 3840 ? "Powiększenie lokalne, dłuższy bok ograniczony do 2048 px na tym urządzeniu." : "Powiększenie lokalne z wyostrzeniem.";
+  showNote(note);
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+async function upscale() {
+  if (state.busy) return;
+  clearError();
+  let src;
+  try { src = await currentToolSource(); } catch (err) { showError(err.message); return; }
+  const signal = beginJob("Upscale");
+  renderSkeletons(1);
+  try {
+    let out;
+    if (state.provider === "replicate" && state.apiKey.trim()) {
+      $("status-text").textContent = "Upscale · Real-ESRGAN";
+      const model = state.model.trim() || "nightmareai/real-esrgan";
+      let body = await replicatePost(
+        `${baseOf("https://api.replicate.com/v1")}/models/${model}/predictions`,
+        { input: { image: src, scale: 4, face_enhance: false } },
+        requireKey(),
+        signal,
+      );
+      const started = Date.now();
+      while (body.status === "starting" || body.status === "processing") {
+        if (Date.now() - started > 120000) throw new Error("Replicate nie zdążyło.");
+        await sleep(2000, signal);
+        const poll = await request(body.urls.get, { headers: { Authorization: `Bearer ${state.apiKey.trim()}` } }, signal);
+        if (!poll.ok) throw new Error(await readError(poll));
+        body = await poll.json();
+      }
+      if (body.error) throw new Error(typeof body.error === "string" ? body.error : "Replicate odrzuciło zadanie.");
+      out = (await imagesFromJson(body))[0];
+    } else if (state.provider === "builtin" && state.builtin) {
+      $("status-text").textContent = "Upscale · Grok";
+      const images = await callBuiltin({
+        mode: "upscale",
+        prompt: "Enhance fine detail, sharpness and texture. Keep the same framing, subject, colors and composition. Do not add objects or text.",
+        negative: state.negative,
+        aspect: state.aspect,
+        n: 1,
+        image: src,
+      }, signal);
+      out = images[0];
+      showNote("Grok podnosi detal. To nie jest gwarantowane 4K — do sztywnego 4× użyj lokalnego silnika (dostawca Flux).");
+    } else {
+      $("status-text").textContent = "Powiększanie";
+      out = await localUpscale(src);
+    }
+    if (!out) throw new Error("Nie udało się powiększyć obrazu.");
+    dropPending();
+    await place(0, out, "Upscale", "tools");
+  } catch (err) {
+    dropPending();
+    if (err?.name === "AbortError") showNote("Przerwano.");
+    else showError(err.message || "Nie udało się powiększyć obrazu.");
+  } finally {
+    endJob();
+  }
+}
+
+function openSheet() {
+  const sheet = $("sheet");
+  sheet.hidden = false;
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+  $("provider").focus();
+}
+function closeSheet() {
+  const sheet = $("sheet");
+  sheet.classList.remove("is-open");
+  setTimeout(() => { sheet.hidden = true; }, 200);
+  $("gear").focus();
+  saveSettings();
+}
+function bindFields() {
+  const pull = () => {
+    state.apiKey = $("api-key").value.trim();
+    state.model = $("model").value.trim();
+    state.baseUrl = $("base-url").value.trim();
+    state.proxy = $("proxy").value.trim();
+    state.negative = $("negative").value;
+    updateEngineHints();
+    saveSettings();
+  };
+  ["api-key", "model", "base-url", "proxy", "negative"].forEach((id) => {
+    $(id).addEventListener("input", pull);
+  });
+  $("provider").addEventListener("change", () => {
+    state.provider = $("provider").value;
+    updateEngineHints();
+    saveSettings();
+  });
+  $("show-key").addEventListener("change", () => {
+    $("api-key").type = $("show-key").checked ? "text" : "password";
+  });
+}
+
+function bind() {
+  document.querySelectorAll("[data-mode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.mode = btn.dataset.mode;
+      sync();
+      saveSettings();
+    });
+  });
+  document.querySelectorAll("[data-aspect]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.aspect = btn.dataset.aspect;
+      sync();
+      saveSettings();
+    });
+  });
+  document.querySelectorAll("[data-style]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.style = btn.dataset.style;
+      sync();
+      saveSettings();
+    });
+  });
+  document.querySelectorAll("[data-count]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.count = Number(btn.dataset.count);
+      sync();
+      saveSettings();
+    });
+  });
+  $("prompt").addEventListener("input", () => {
+    $("count-chars").textContent = String($("prompt").value.length);
+    saveSettings();
+  });
+  $("steps").addEventListener("input", () => {
+    state.steps = Number($("steps").value);
+    $("steps-val").textContent = String(state.steps);
+    saveSettings();
+  });
+  $("cfg").addEventListener("input", () => {
+    state.cfg = Number($("cfg").value);
+    $("cfg-val").textContent = String(state.cfg);
+    saveSettings();
+  });
+  $("denoise").addEventListener("input", () => {
+    state.denoise = Number($("denoise").value);
+    $("denoise-val").textContent = state.denoise.toFixed(2);
+    saveSettings();
+  });
+  $("brush").addEventListener("input", () => {
+    state.brush = Number($("brush").value);
+    $("brush-val").textContent = String(state.brush);
+    saveSettings();
+  });
+  $("adv-btn").addEventListener("click", () => {
+    const fold = $("fold");
+    const willOpen = !foldIsOpen();
+    fold.classList.remove("desktop-open");
+    fold.classList.toggle("open", willOpen);
+    fold.classList.toggle("shut", !willOpen);
+    sync();
+  });
+  $("go").addEventListener("click", () => { void onGenerate(); });
+  let videoTarget = 0;
+  document.querySelectorAll("[data-vadd]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      videoTarget = Number(btn.dataset.vadd);
+      $("video-file").click();
+    });
+  });
+  document.querySelectorAll("[data-vclear]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      clearVideoRef(Number(btn.dataset.vclear));
+    });
+  });
+  $("video-clear").addEventListener("click", () => clearVideoStill());
+  $("video-last").addEventListener("click", () => {
+    const shot = state.shots.find((item) => item.src && !isVideoSrc(item));
+    if (!shot) {
+      showError("W galerii nie ma jeszcze zdjęcia.");
+      return;
+    }
+    const open = state.videoRefs.findIndex((item) => !item);
+    void putVideoRef(open < 0 ? 0 : open, shot.src).catch((err) => showError(err.message));
+  });
+  $("video-file").addEventListener("change", () => {
+    const files = $("video-file").files;
+    if (files?.length) void ingestVideo(files, videoTarget);
+    $("video-file").value = "";
+  });
+  const videoGrid = $("video-grid");
+  videoGrid.addEventListener("dragover", (event) => { event.preventDefault(); videoGrid.classList.add("hot"); });
+  videoGrid.addEventListener("dragleave", () => videoGrid.classList.remove("hot"));
+  videoGrid.addEventListener("drop", (event) => {
+    event.preventDefault();
+    videoGrid.classList.remove("hot");
+    const tile = event.target.closest?.("[data-vslot]");
+    const open = state.videoRefs.findIndex((item) => !item);
+    const slot = tile ? Number(tile.dataset.vslot) : (open < 0 ? 0 : open);
+    const files = event.dataTransfer?.files;
+    if (files?.length) void ingestVideo(files, slot);
+  });
+  $("pick").addEventListener("click", () => $("file").click());
+  $("cam").addEventListener("click", () => $("cam-file").click());
+  $("file").addEventListener("change", () => { const file = $("file").files?.[0]; if (file) void ingest(file); $("file").value = ""; });
+  $("cam-file").addEventListener("change", () => { const file = $("cam-file").files?.[0]; if (file) void ingest(file); $("cam-file").value = ""; });
+  let refTarget = 0;
+  document.querySelectorAll("[data-add]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      refTarget = Number(btn.dataset.add);
+      $("ref-file").click();
+    });
+  });
+  document.querySelectorAll("[data-clear]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      clearRef(Number(btn.dataset.clear));
+    });
+  });
+  $("ref-file").addEventListener("change", () => {
+    const files = $("ref-file").files;
+    if (files?.length) void ingestMany(files, refTarget);
+    $("ref-file").value = "";
+  });
+  const board = $("ref-board");
+  board.addEventListener("dragover", (event) => { event.preventDefault(); board.classList.add("hot"); });
+  board.addEventListener("dragleave", () => board.classList.remove("hot"));
+  board.addEventListener("drop", (event) => {
+    event.preventDefault();
+    board.classList.remove("hot");
+    const tile = event.target.closest?.(".ref-tile");
+    const open = state.refs.findIndex((item) => !item);
+    const slot = tile ? Number(tile.dataset.slot) : (open < 0 ? 0 : open);
+    const files = event.dataTransfer?.files;
+    if (files?.length) void ingestMany(files, slot);
+  });
+  const drop = $("drop");
+  drop.addEventListener("dragover", (event) => { event.preventDefault(); drop.classList.add("hot"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("hot"));
+  drop.addEventListener("drop", (event) => {
+    event.preventDefault();
+    drop.classList.remove("hot");
+    const file = event.dataTransfer?.files?.[0];
+    if (file) void ingest(file);
+  });
+  document.addEventListener("paste", (event) => {
+    const files = [];
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (!files.length) return;
+    if (state.mode === "image") {
+      const open = state.refs.findIndex((item) => !item);
+      void ingestMany(files, open < 0 ? 0 : open);
+    } else {
+      void ingest(files[0]);
+    }
+  });
+  const canvas = $("mask-view");
+  canvas.addEventListener("pointerdown", (event) => {
+    if (!state.source) return;
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    pushUndo();
+    mask.drawing = true;
+    mask.last = pointerPos(event);
+    paintDot(mask.last);
+    moveRing(event);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (state.source) moveRing(event);
+    if (!mask.drawing || !mask.last) return;
+    const point = pointerPos(event);
+    paintLine(mask.last, point);
+    mask.last = point;
+  });
+  const endDraw = () => { mask.drawing = false; mask.last = null; };
+  canvas.addEventListener("pointerup", endDraw);
+  canvas.addEventListener("pointercancel", endDraw);
+  $("mask-fit").addEventListener("pointerleave", () => { $("brush-ring").style.display = "none"; });
+  $("undo").addEventListener("click", () => {
+    const data = mask.undo.pop();
+    $("undo").disabled = mask.undo.length === 0;
+    if (!data) return;
+    getMaskContext().putImageData(data, 0, 0);
+  });
+  $("clear-mask").addEventListener("click", () => {
+    const canvasEl = $("mask-view");
+    if (!canvasEl.width) return;
+    pushUndo();
+    getMaskContext().clearRect(0, 0, canvasEl.width, canvasEl.height);
+  });
+  $("remove-bg").addEventListener("click", () => { void removeBackground(); });
+  $("upscale").addEventListener("click", () => { void upscale(); });
+  $("gear").addEventListener("click", openSheet);
+  $("provider-chip").addEventListener("click", openSheet);
+  document.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", closeSheet));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !$("sheet").hidden) closeSheet();
+  });
+  $("wipe").addEventListener("click", () => {
+    const btn = $("wipe");
+    if (btn.dataset.armed === "1") {
+      btn.dataset.armed = "0";
+      btn.textContent = "Wyczyść galerię";
+      state.shots = [];
+      renderGallery();
+      idbClear().catch(() => {});
+      return;
+    }
+    btn.dataset.armed = "1";
+    btn.textContent = "Potwierdź czyszczenie";
+    setTimeout(() => {
+      if (btn.dataset.armed !== "1") return;
+      btn.dataset.armed = "0";
+      btn.textContent = "Wyczyść galerię";
+    }, 2500);
+  });
+  bindFields();
+}
+
+async function boot() {
+  bind();
+  restoreSettings();
+  if (!$("fold").classList.contains("shut") && matchMedia("(min-width: 960px)").matches) {
+    $("adv-btn").setAttribute("aria-expanded", "true");
+    $("adv-mark").textContent = "–";
+  }
+  sync();
+  try {
+    const health = await fetch("api/carta");
+    if (health.ok) {
+      const data = await health.json();
+      state.builtin = Boolean(data.available);
+    }
+  } catch {
+    state.builtin = false;
+  }
+  if (!state.provider) state.provider = state.builtin ? "builtin" : "flux";
+  if (state.provider === "builtin" && !state.builtin) {
+    state.provider = "flux";
+    showNote("Wbudowany Grok jest niedostępny w tym pliku. Wybrany został Flux w przeglądarce.");
+  }
+  sync();
+  saveSettings();
+  try { await loadGallery(); } catch { renderGallery(); }
+}
+
+boot().catch((err) => {
+  showError(err?.message || "Nie udało się uruchomić atelier.");
+});
+</script>
+</body>
+</html>
