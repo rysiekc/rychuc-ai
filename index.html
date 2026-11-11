@@ -1534,8 +1534,8 @@ function saveBlob(blob, name) {
 }
 async function download(src, name) {
   const video = /\.mp4$/i.test(name) || String(src).startsWith("data:video") || /\.mp4(\?|$)/i.test(String(src));
-  if (video && String(src).startsWith("data:")) {
-    saveBlob(new Blob([dataUrlToBlob(src)], { type: "video/mp4" }), name);
+  if (String(src).startsWith("data:")) {
+    saveBlob(new Blob([dataUrlToBlob(src)], { type: video ? "video/mp4" : "image/png" }), name);
     return;
   }
   let blob;
