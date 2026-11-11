@@ -2226,7 +2226,7 @@ async function onGenerate() {
   if (mode === "video" && (state.provider === "flux" || state.provider === "openai" || state.provider === "hf")) {
     return fail("Film generuje wbudowany Grok, klucz xAI albo model wideo na Replicate.");
   }
-  if (mode === "image" && filledRefs().length < 2) return fail("Wgraj co najmniej dwa zdjęcia. W opisie użyj numerów z kafelków.");
+  if (mode === "image" && filledRefs().length < 1) return fail("Wgraj co najmniej jedno zdjęcie. W opisie użyj numerów z kafelków.");
   if (mode === "mask" && !state.source) return fail("Wgraj zdjęcie.");
   if (state.provider === "flux" && mode !== "text") {
     return fail("Flux w przeglądarce przyjmuje tylko opis. Do zdjęcia lub maski wybierz innego dostawcę.");
