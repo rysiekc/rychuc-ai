@@ -1808,11 +1808,13 @@ async function callXai(prompt, image, signal, pack) {
       model,
       prompt,
       images: pack.refs.map((ref) => ({ type: "image_url", url: ref.dataUrl })),
-      aspect_ratio: state.aspect,
+      aspect_ratio: state.aspect, 
+      response_format: "b64_json",
     } : {
       model,
       prompt,
       image: { url: image, type: "image_url" },
+      response_format: "b64_json",
     }),
   }, signal);
   return (await parseImageResponse(res))[0];
