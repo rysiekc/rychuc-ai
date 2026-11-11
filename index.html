@@ -1681,7 +1681,7 @@ async function readError(res) {
 async function urlToDataUrl(url) {
   if (url.startsWith("data:image/")) return url;
   try {
-    const res = await fetch(url);
+    const res = await fetch("https://rysiekc-ai.ryszardcyprian220675.workers.dev/?img=" + encodeURIComponent(url));
     if (!res.ok) return url;
     const blob = await res.blob();
     if (!blob.type.startsWith("image/")) return url;
