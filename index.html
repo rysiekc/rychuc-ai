@@ -2005,7 +2005,8 @@ async function callFlux(prompt, signal) {
   if (!images.length && alt) images.push(alt[0]);
   if (!images.length) throw new Error("Odpowiedź fal.ai: " + JSON.stringify(data).slice(0, 180));
   return images;
-async function callFalVideo(prompt, refs, signal) {
+}
+    async function callFalVideo(prompt, refs, signal) {
   const key = requireKey();
   const qBase = "https://rysiekc-ai.ryszardcyprian220675.workers.dev/fal-queue";
   const model = state.model.trim() || (refs.length ? "fal-ai/wan/v2.1/1.3b/image-to-video" : "fal-ai/wan/v2.1/1.3b/text-to-video");
