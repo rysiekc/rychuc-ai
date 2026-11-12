@@ -706,6 +706,8 @@
           <option value="openai">OpenAI — DALL·E 3</option>
           <option value="hf">Hugging Face — FLUX</option>
           <option value="replicate">Replicate — FLUX / SD3</option>
+                  <option value="fal">fal.ai — własny klucz</option>
+
           <option value="flux">Flux w przeglądarce (bez klucza)</option>
         </select>
       </label>
@@ -757,6 +759,7 @@ const SHORT = {
   openai: "DALL·E",
   hf: "FLUX HF",
   replicate: "Replicate",
+  fal: "fal.ai",
   flux: "Flux",
 };
 const HELP = {
@@ -765,6 +768,8 @@ const HELP = {
   openai: "Klucz OpenAI. Tekst: DALL·E 3 (JSON). Zdjęcie i maska: DALL·E 2, multipart z plikiem i maską.",
   hf: "Token Hugging Face. Domyślnie POST na router.huggingface.co, model black-forest-labs/FLUX.1-schnell.",
   replicate: "Token Replicate. Tekst: flux-schnell. Zdjęcie: flux-dev. Maska: flux-fill-dev. Tło: lucataco/remove-bg. Upscale: nightmareai/real-esrgan.",
+  fal: "Klucz z fal.ai/dashboard/keys. Domyślnie Seedream 4.5 (safety checker wyłączony). Wideo: wpisz np. fal-ai/wan/v2.1/1.3b/text-to-video lub fal-ai/kling-video/v1.6/standard/image-to-video.",
+
   flux: "Bez klucza. Tylko tekst, model Flux. Zdjęcie, maska i narzędzia sieciowe wymagają innego dostawcy.",
 };
 const STORE = "carta.settings.v1";
@@ -851,7 +856,7 @@ function readFile(file) {
   });
 }
 function needsKey(provider) {
-  return provider === "xai" || provider === "openai" || provider === "hf" || provider === "replicate";
+  return provider === "xai" || provider === "openai" || provider === "hf" || provider === "replicate" || provider === "fal";
 }
 function maskNative(provider) {
   return provider === "openai" || provider === "replicate";
@@ -1969,6 +1974,69 @@ async function callFlux(prompt, signal) {
   const images = await parseImageResponse(res);
   return images[0];
 }
+  async function callFal(mode, prompt, bin, signal, pack) {
+  const key = requireKey();
+  const base = baseOf("https://rysiekc-ai.ryszardcyprian220675.workers.dev/fal");
+  const isEdit = mode === "image" || mode === "mask";
+  const model = state.model.trim() || (isEdit ? "fal-ai/bytedance/seedream/v4.5/edit" : "fal-ai/bytedance/seedream/v4.5/text-to-image");
+  const sz = SIZES[state.aspect];
+  const body = {
+    prompt,
+    enable_safety_checker: false,
+    image_size: sz ? { width: sz[0], height: sz[1] } : "square_hd",
+  };
+  if (mode === "mask") {
+    body.image_url = state.source.dataUrl;
+    body.mask_url = bakeGray(bin);
+  } else if (mode === "image") {
+    const urls = pack?.refs?.length ? pack.refs.map((r) => r.dataUrl) : [state.source.dataUrl];
+    body.image_urls = urls;
+    body.image_url = urls[0];
+  }
+  const res = await request(`${base}/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }, signal);
+  if (!res.ok) throw new Error(await readError(res));
+  const data = await res.json();
+  const images = await imagesFromJson(data);
+  if (!images.length) throw new Error("fal.ai nie zwróciło obrazu.");
+  return images;
+}
+
+async function callFalVideo(prompt, refs, signal) {
+  const key = requireKey();
+  const qBase = "https://rysiekc-ai.ryszardcyprian220675.workers.dev/fal-queue";
+  const model = state.model.trim() || (refs.length ? "fal-ai/wan/v2.1/1.3b/image-to-video" : "fal-ai/wan/v2.1/1.3b/text-to-video");
+  const body = { prompt, enable_safety_checker: false };
+  if (refs.length) body.image_url = refs[0].dataUrl;
+  const res = await request(`${qBase}/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }, signal);
+  if (!res.ok) throw new Error(await readError(res));
+  const queued = await res.json();
+  const statusUrl = queued.status_url.replace("https://fal.run", qBase);
+  const responseUrl = queued.response_url.replace("https://fal.run", qBase);
+  const started = Date.now();
+  while (true) {
+    if (Date.now() - started > 240000) throw new Error("fal.ai nie zdążyło z filmem.");
+    await sleep(3000, signal);
+    const stRes = await request(statusUrl, { headers: { Authorization: `Key ${key}` } }, signal);
+    const st = await stRes.json();
+    if (st.status === "FAILED") throw new Error("fal.ai odrzuciło film.");
+    if (st.status === "COMPLETED") break;
+  }
+  const finalRes = await request(responseUrl, { headers: { Authorization: `Key ${key}` } }, signal);
+  const finalData = await finalRes.json();
+  const url = videoUrlOf(finalData);
+  if (!url) throw new Error("fal.ai nie zwróciło pliku wideo.");
+  return url;
+}
+  
+
 async function dispatchOne(mode, prompt, bin, signal, pack) {
   const provider = state.provider;
   if (provider === "xai") {
@@ -1986,6 +2054,8 @@ async function dispatchOne(mode, prompt, bin, signal, pack) {
     return callHf(prompt, image, signal);
   }
   if (provider === "replicate") return callReplicate(mode, prompt, bin, signal, pack);
+    if (provider === "fal") return callFal(mode, prompt, bin, signal, pack);
+
   return callFlux(prompt, signal);
 }
 
@@ -2150,6 +2220,8 @@ async function dispatchVideo(prompt, signal) {
   }
   if (state.provider === "xai") return callXaiVideo(prompt, refs, signal);
   if (state.provider === "replicate") return callReplicateVideo(prompt, refs, signal);
+    if (state.provider === "fal") return callFalVideo(prompt, refs, signal);
+
   throw new Error("Ten dostawca nie generuje wideo.");
 }
 function videoUrlOf(data) {
