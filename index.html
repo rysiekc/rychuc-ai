@@ -2578,8 +2578,10 @@ function closeSheet() {
   saveSettings();
 }
 function bindFields() {
+  const keySlot = () => "rychuc_key_" + state.provider;
   const pull = () => {
     state.apiKey = $("api-key").value.trim();
+    try { localStorage.setItem(keySlot(), state.apiKey); } catch {}
     state.model = $("model").value.trim();
     state.baseUrl = $("base-url").value.trim();
     state.proxy = $("proxy").value.trim();
@@ -2592,6 +2594,14 @@ function bindFields() {
   });
   $("provider").addEventListener("change", () => {
     state.provider = $("provider").value;
+    let saved = "";
+    try { saved = localStorage.getItem(keySlot()) || ""; } catch {}
+    if (saved) {
+      state.apiKey = saved;
+      $("api-key").value = saved;
+    } else if (state.apiKey) {
+      try { localStorage.setItem(keySlot(), state.apiKey); } catch {}
+    }
     updateEngineHints();
     saveSettings();
   });
@@ -2599,6 +2609,7 @@ function bindFields() {
     $("api-key").type = $("show-key").checked ? "text" : "password";
   });
 }
+
 
 function bind() {
   document.querySelectorAll("[data-mode]").forEach((btn) => {
