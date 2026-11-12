@@ -1545,7 +1545,7 @@ async function download(src, name) {
   }
   let blob;
   try {
-    blob = await asBlob(src.startsWith("http") ? "https://corsproxy.io?" + encodeURIComponent(src) : src);
+    blob = await asBlob(src.startsWith("http") ? "https://rysiekc-ai.ryszardcyprian220675.workers.dev/?img=" + encodeURIComponent(src) : src);
   } catch {
     if (video) {
       showError("Nie udało się zapisać filmu na urządzeniu.");
