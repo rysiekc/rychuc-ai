@@ -2001,11 +2001,10 @@ async function callFlux(prompt, signal) {
   if (!res.ok) throw new Error(await readError(res));
   const data = await res.json();
   const images = (data?.images || []).map((x) => x.url || x).filter(Boolean);
-
-  if (!images.length) throw new Error("fal.ai nie zwróciło obrazu.");
+  const alt = JSON.stringify(data).match(/https:\/\/[^"'\s]+\.(?:png|jpg|jpeg|webp)/i);
+  if (!images.length && alt) images.push(alt[0]);
+  if (!images.length) throw new Error("Odpowiedź fal.ai: " + JSON.stringify(data).slice(0, 180));
   return images;
-}
-
 async function callFalVideo(prompt, refs, signal) {
   const key = requireKey();
   const qBase = "https://rysiekc-ai.ryszardcyprian220675.workers.dev/fal-queue";
