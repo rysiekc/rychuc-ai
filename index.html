@@ -2000,7 +2000,8 @@ async function callFlux(prompt, signal) {
   }, signal);
   if (!res.ok) throw new Error(await readError(res));
   const data = await res.json();
-  const images = await imagesFromJson(data);
+  const images = (data?.images || []).map((x) => x.url || x).filter(Boolean);
+
   if (!images.length) throw new Error("fal.ai nie zwróciło obrazu.");
   return images;
 }
